@@ -60,9 +60,10 @@ int main() {
 	sem_init(&Md_Queue_Write, 0, 0);
 
 
-	//读取配置信息
+	//读取期货账户配置信息
     ACC_SETTING = Get_Account_Setting();
 
+    //读取
     INSTRUMENT_SETTING = Get_Instrument_Setting();
 
     // 获取需要订阅的合约，交易线程可能会再次启动，查询全市场合约

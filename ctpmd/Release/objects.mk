@@ -4,5 +4,5 @@
 
 USER_OBJS :=
 
-LIBS := -l/home/tcz/ctpapi/libthostmduserapi.so -l/home/tcz/ctpapi/libthosttraderapi.so
+LIBS := -lpthread -lbsoncxx -lmongocxx -lthosttraderapi -lthostmduserapi
 

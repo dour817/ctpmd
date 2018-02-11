@@ -41,13 +41,13 @@ endif
 all: ctpmd
 
 dependents:
-	-cd /home/tcz/workspace/ctpmd/Debug && $(MAKE) clean all
+	-cd /home/tcz/learngit/ctpmd/Debug && $(MAKE) all
 
 # Tool invocations
-ctpmd: $(OBJS) $(USER_OBJS) /home/tcz/workspace/ctpmd/Debug/ctpmd
+ctpmd: $(OBJS) $(USER_OBJS) /home/tcz/learngit/ctpmd/Debug/ctpmd
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C++ Linker'
-	g++ -L/home/tcz/ctpapi -o "ctpmd" $(OBJS) $(USER_OBJS) $(LIBS)
+	g++ -L/home/tcz/ctpapi -Lusr/local/lib -o "ctpmd" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -58,6 +58,6 @@ clean:
 
 .PHONY: all clean dependents
 .SECONDARY:
-/home/tcz/workspace/ctpmd/Debug/ctpmd:
+/home/tcz/learngit/ctpmd/Debug/ctpmd:
 
 -include ../makefile.targets
