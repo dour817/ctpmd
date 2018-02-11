@@ -1,6 +1,6 @@
 //============================================================================
 // Name        : ctpmd.cpp
-// Author      : 
+// Author      :
 // Version     :
 // Copyright   : Your copyright notice
 // Description : Hello World in C++, Ansi-style
@@ -151,12 +151,7 @@ void start_rev_md(vector<string> code_list, int instance_num, mongocxx::database
 
         coll = db[this_data.InstrumentID];
 
-        /*bsoncxx::document::value document = bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("hello", "world"));
-		coll.insert_one(document.view());*/
-
-
         //写入mongodb
-	    //bsoncxx::builder::basic::document document{};
 	    auto doc = bsoncxx::builder::basic::document{};
 
         doc.append(bsoncxx::builder::basic::kvp("InstrumentID", this_data.InstrumentID));
