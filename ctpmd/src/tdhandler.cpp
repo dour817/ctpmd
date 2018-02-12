@@ -32,7 +32,7 @@ void TdHandler :: OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CTh
 		cout << "RequestID = [" << nRequestID << "], Chain = [" << bIsLast << "]" << endl;*/
 	}else{
 		cout << endl;
-		cout  << "**********  交易接口登录成功!  **********" << endl;
+		cout  << "**********  trade api logined successfule!  **********" << endl;
 		cout << endl;
 
 		//投资者结算结果确认

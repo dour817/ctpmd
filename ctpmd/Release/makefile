@@ -41,7 +41,7 @@ endif
 all: ctpmd
 
 dependents:
-	-cd /home/tcz/learngit/ctpmd/Debug && $(MAKE) all
+	-cd /home/tcz/learngit/ctpmd/Debug && $(MAKE) clean all
 
 # Tool invocations
 ctpmd: $(OBJS) $(USER_OBJS) /home/tcz/learngit/ctpmd/Debug/ctpmd
