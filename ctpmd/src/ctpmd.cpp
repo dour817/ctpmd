@@ -69,9 +69,9 @@ int main() {
     // 获取需要订阅的合约，交易线程可能会再次启动，查询全市场合约
     ALL_CODE = Get_All_SubInstrument_Code(INSTRUMENT_SETTING);
 
-    //临时打印
+    /*//临时打印
     for (vector<string>::iterator ite = ALL_CODE.begin(); ite < ALL_CODE.end(); ite++ )
-    	cout << *ite << endl;
+    	cout << *ite << endl;*/
 
     // 创建行情接收实例，程序开始工作。
     start_rev_md(ALL_CODE, INSTRUMENT_SETTING.instance_num, db);
@@ -115,6 +115,9 @@ void *mdstartfun(void *arg){
 // 启动行情接收,运行在主线程
 void start_rev_md(vector<string> code_list, int instance_num, mongocxx::database db){
 
+	//临时打印
+	cout << "start_rev_md run...." << endl;
+
 	//每个行情接收实例(实例)需要订阅的合约个数
 	int each_code_num = code_list.size() / instance_num;
 
@@ -141,14 +144,16 @@ void start_rev_md(vector<string> code_list, int instance_num, mongocxx::database
 
     mongocxx::collection coll;
     //循环将tick行情队列的tick数据写入mongo
+    market_data *p_this_data;
 	while(true){
 
-		market_data *p_this_data;
 		//等待tick行情队列有数据过来。
 		sem_wait(&Md_Queue_Write);
 
 	    MARKET_QUEQUE.pop(p_this_data);
 	    market_data this_data = *p_this_data;
+	    delete (market_data*)p_this_data;
+		//p_this_data = NULL;
 
         coll = db[this_data.InstrumentID];
 
@@ -184,8 +189,7 @@ void start_rev_md(vector<string> code_list, int instance_num, mongocxx::database
 	    //临时打印
         cout << this_data.UpdateTime << "   " << this_data.InstrumentID << "  "<< this_data.LastPrice << endl;
 
-        delete p_this_data;
-		p_this_data = NULL;
+
 	}
 
 }

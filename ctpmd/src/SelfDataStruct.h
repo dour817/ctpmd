@@ -8,6 +8,8 @@
 #ifndef SELFDATASTRUCT_H_
 #define SELFDATASTRUCT_H_
 
+#define INSTRUMENT_LENGTH 40
+#define TIME_LENGTH 20
 #include <iostream>
 #include <string>
 #include <vector>
@@ -45,10 +47,10 @@ using namespace std;
 typedef struct market_data{
 
 	//结算日
-	char TradingDay[20];
+	char TradingDay[TIME_LENGTH];
 
 	//合约代码
-	char InstrumentID[40];
+	char InstrumentID[INSTRUMENT_LENGTH];
 
 	//最新价
 	double LastPrice;
@@ -87,7 +89,7 @@ typedef struct market_data{
 	double LowerLimitPrice;
 
 	//时间戳 HH:MM:SS，精确到秒
-	char UpdateTime[20];
+	char UpdateTime[TIME_LENGTH];
 
 	//时间戳 FFF 精确到毫秒
 	int    UpdateMillisec;
@@ -105,7 +107,7 @@ typedef struct market_data{
 	double AskVolume1;
 
 	//自然日
-	char ActionDay[20];
+	char ActionDay[TIME_LENGTH];
 
 }market_data;
 
@@ -114,10 +116,10 @@ typedef struct market_data{
 typedef struct market_data_for_k{
 
 	//结算日
-    char TradingDay[20];
+    char TradingDay[TIME_LENGTH];
 
 	//合约代码
-	char InstrumentID[40];
+	char InstrumentID[INSTRUMENT_LENGTH];
 
 	//最新价
 	double LastPrice;
@@ -126,13 +128,13 @@ typedef struct market_data_for_k{
 	int    Volume;
 
 	//时间戳 HH:MM:SS，精确到秒
-	char UpdateTime[20];
+	char UpdateTime[TIME_LENGTH];
 
 	//时间戳 FFF 精确到毫秒
 	int    UpdateMillisec;
 
 	//自然日
-	char ActionDay[20];
+	char ActionDay[TIME_LENGTH];
 
 }market_data_for_k;
 
@@ -141,10 +143,10 @@ typedef struct market_data_for_k{
 typedef struct bar{
 
 	//合约代码
-	char InstrumentID[40];
+	char InstrumentID[INSTRUMENT_LENGTH];
 
 	//时间戳 HH:MM:SS，精确到秒
-	char UpdateTime[20];
+	char UpdateTime[TIME_LENGTH];
 
 	//开盘价
 	double OpenPrice;

@@ -65,7 +65,7 @@ void MdHandler :: OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,CTho
 	char **p = new char *[subcode.size()];
 	for(vector<string>::size_type beg=0; beg!=subcode.size(); beg++)
 	{
-		char *tempp = new char[7];
+		char *tempp = new char[40];
 		strcpy(tempp,const_cast<char*>(subcode[beg].c_str()));
 		p[(int)beg] = tempp;
 	}
@@ -159,8 +159,8 @@ void* MdHandler :: calcu_k_func(void *arg){
     }
 
     // 循环接收每个tick行情，计算k线
+    market_data_for_k *p_this_data;
 	while(true){
-		market_data_for_k *p_this_data;
 
 		//等待行情数据推构来
 		sem_wait(&(thisp->k_signal));
@@ -222,7 +222,7 @@ void* MdHandler :: calcu_k_func(void *arg){
         }
 
         //cout << "计算k线  " << this_data.UpdateTime << "   " << this_data.InstrumentID << "  "<< this_data.LastPrice << endl;
-        delete p_this_data;
+        delete (market_data_for_k *)p_this_data;
 		p_this_data = NULL;
 	}
 }
