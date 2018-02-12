@@ -47,7 +47,7 @@ dependents:
 ctpmd: $(OBJS) $(USER_OBJS) /home/tcz/learngit/ctpmd/Debug/ctpmd
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C++ Linker'
-	g++ -L/home/tcz/ctpapi -Lusr/local/lib -o "ctpmd" $(OBJS) $(USER_OBJS) $(LIBS)
+	g++ -L/home/tcz/ctpapi -L/usr/local/lib -o "ctpmd" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
