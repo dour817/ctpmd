@@ -15,6 +15,7 @@
 extern vector<string> ALL_CODE;
 extern sem_t Md_Thread;
 extern account_setting ACC_SETTING;
+extern char DATETIME[30];
 
 using namespace std;
 

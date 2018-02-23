@@ -147,7 +147,7 @@ void* MdHandler :: calcu_k_func(void *arg){
     for (vector<string>::size_type i=0; i < thisp->subcode.size(); i++){
         bar temp_bar;
         strcpy(temp_bar.InstrumentID, (thisp->subcode)[i].c_str());
-        strcpy(temp_bar.UpdateTime, "xx:xx");
+        strncpy(temp_bar.UpdateTime, DATETIME, 16);
         temp_bar.OpenPrice = 0;
         temp_bar.HighPrice = 0;
         temp_bar.LowPrice = 10000000.0;
@@ -160,6 +160,8 @@ void* MdHandler :: calcu_k_func(void *arg){
 
     // 循环接收每个tick行情，计算k线
     market_data_for_k *p_this_data;
+    char temp2char[2];
+    int hour;
 	while(true){
 
 		//等待行情数据推构来
@@ -168,13 +170,23 @@ void* MdHandler :: calcu_k_func(void *arg){
 		//提取行情数据
 		thisp->market_tick_queue.pop(p_this_data);
 		market_data_for_k this_data = *p_this_data;
+		delete (market_data_for_k *)p_this_data;
+		p_this_data = NULL;
+
+		//剔除出开盘前数据
+		hour = atoi(strncpy(temp2char, this_data.UpdateTime, 2));
+		//minute = atoi(strncpy(temp2char, this_data.UpdateTime+3, 2));
+        if ( (hour >=15 && hour <=21) || (hour<9 && hour>3) ){
+        	//cout << "分钟过滤" << endl;
+        	continue;
+        }
 
 		//开始计算，遍历所有合约
         for (vector<bar>::size_type i=0; i<bars.size(); i++){
         	//找到合约
         	if ( !strcmp(this_data.InstrumentID, bars[i].InstrumentID) ){
         		//判断本根bar是否走完。
-                if ( bars[i].UpdateTime[3] == this_data.UpdateTime[3] && bars[i].UpdateTime[4] == this_data.UpdateTime[4] ){
+                if ( bars[i].UpdateTime[14] == this_data.UpdateTime[3] && bars[i].UpdateTime[15] == this_data.UpdateTime[4] ){
                     //bar中行情
 
                 	//更新收盘价
@@ -192,7 +204,7 @@ void* MdHandler :: calcu_k_func(void *arg){
                 	bars[i].TotalVolume = this_data.Volume;
 
                 	//时间 HH:SS
-                	strncpy(bars[i].UpdateTime, this_data.UpdateTime, 5);
+                	strncpy(bars[i].UpdateTime+11, this_data.UpdateTime, 5);
                 }else{
                 	//本条行情是最新一个根bar的开盘价，上一个bar已经结束。
 
@@ -215,15 +227,14 @@ void* MdHandler :: calcu_k_func(void *arg){
 
                 	bars[i].LastTotalVolume = bars[i].TotalVolume;
                 	bars[i].TotalVolume = this_data.Volume;
-                	strncpy(bars[i].UpdateTime, this_data.UpdateTime, 5);
+                	strncpy(bars[i].UpdateTime+11, this_data.UpdateTime, 5);
                 }
                 break;
         	}
         }
 
         //cout << "计算k线  " << this_data.UpdateTime << "   " << this_data.InstrumentID << "  "<< this_data.LastPrice << endl;
-        delete (market_data_for_k *)p_this_data;
-		p_this_data = NULL;
+
 	}
 }
 

@@ -15,6 +15,9 @@ account_setting ACC_SETTING;
 mongodb_setting MONGODB_SETTING;
 instrument_setting INSTRUMENT_SETTING;
 
+//自然日期和时间 yyyy-mm-dd HH:MM:SS
+char DATETIME[30];
+
 //全局变量，所有订阅合约列表
 vector<string> ALL_CODE;
 
@@ -143,8 +146,12 @@ void start_rev_md(vector<string> code_list, int instance_num, mongocxx::database
 	}
 
     mongocxx::collection coll;
+
+
     //循环将tick行情队列的tick数据写入mongo
     market_data *p_this_data;
+    char temp2char[2];
+    int hour;
 	while(true){
 
 		//等待tick行情队列有数据过来。
@@ -153,7 +160,15 @@ void start_rev_md(vector<string> code_list, int instance_num, mongocxx::database
 	    MARKET_QUEQUE.pop(p_this_data);
 	    market_data this_data = *p_this_data;
 	    delete (market_data*)p_this_data;
-		//p_this_data = NULL;
+		p_this_data = NULL;
+
+		//剔除出开盘前数据
+		hour = atoi(strncpy(temp2char, this_data.UpdateTime, 2));
+		//minute = atoi(strncpy(temp2char, this_data.UpdateTime+3, 2));
+		if ( (hour >=15 && hour <=21) || (hour<9 && hour>3) ){
+			//cout << "tick过滤" << endl;
+			continue;
+		}
 
         coll = db[this_data.InstrumentID];
 
@@ -198,41 +213,42 @@ void start_rev_md(vector<string> code_list, int instance_num, mongocxx::database
 //计算所有需要订阅的合约
 vector<string> Get_All_SubInstrument_Code(instrument_setting arg){
 	vector<string> result;
+
+	//创建交易接口类指针
+	p_tdreq = CThostFtdcTraderApi::CreateFtdcTraderApi("./td/");
+
+	//创建交易Spi回调类。
+	TdHandler shtrader(p_tdreq);
+
+	//注册Spi回调类实例
+	p_tdreq->RegisterSpi(&shtrader);
+
+	//订阅各种流
+	p_tdreq->SubscribePrivateTopic(THOST_TERT_QUICK);
+	p_tdreq->SubscribePublicTopic(THOST_TERT_QUICK);
+
+	//注册交易前置地址
+	for ( vector<string>::size_type i = 0; i<ACC_SETTING.traderaddress.size(); i++ ){
+		char *p = const_cast<char*>(ACC_SETTING.traderaddress[i].c_str());
+		p_tdreq->RegisterFront(p);
+	}
+
+	//启动交易接口线程
+	p_tdreq->Init();
+
+	// 等待全市场合约查询返回
+	sem_wait(&Md_Thread);
+
+	//交易接口工作完成，释放。
+	p_tdreq->Release();
+	p_tdreq = NULL;
+	//p_tdreq->Join();
+
+	cout << "全市场共  " << ALL_CODE.size() << " 个合约" << endl;
+
+
     if(arg.instrument[0]=="" && arg.instrument.size()==1){
-
-        // 配置文件没有指定具体订阅哪些合约，需要查询全市场合约
-
-    	//创建交易接口类指针
-    	p_tdreq = CThostFtdcTraderApi::CreateFtdcTraderApi("./td/");
-
-    	//创建交易Spi回调类。
-		TdHandler shtrader(p_tdreq);
-
-		//注册Spi回调类实例
-		p_tdreq->RegisterSpi(&shtrader);
-
-		//订阅各种流
-		p_tdreq->SubscribePrivateTopic(THOST_TERT_QUICK);
-		p_tdreq->SubscribePublicTopic(THOST_TERT_QUICK);
-
-		//注册交易前置地址
-		for ( vector<string>::size_type i = 0; i<ACC_SETTING.traderaddress.size(); i++ ){
-			char *p = const_cast<char*>(ACC_SETTING.traderaddress[i].c_str());
-			p_tdreq->RegisterFront(p);
-		}
-
-		//启动交易接口线程
-		p_tdreq->Init();
-
-		// 等待全市场合约查询返回
-		sem_wait(&Md_Thread);
-
-		//交易接口工作完成，释放。
-		p_tdreq->Release();
-		p_tdreq = NULL;
-		//p_tdreq->Join();
-
-		cout << "全市场共  " << ALL_CODE.size() << " 个合约" << endl;
+        // 配置文件没有指定具体订阅哪些具体合约
 
 		//如果配置文件指定了具体品种，则筛选出指定品种的全部合约
 		if(arg.commodity[0]!=""){
@@ -331,6 +347,5 @@ instrument_setting Get_Instrument_Setting(){
 
 	return result;
 }
-
 
 

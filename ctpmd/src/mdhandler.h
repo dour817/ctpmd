@@ -15,6 +15,7 @@ extern account_setting ACC_SETTING;
 extern mongodb_setting MONGODB_SETTING;
 extern boost::lockfree::queue< market_data*, boost::lockfree::fixed_sized<false> > MARKET_QUEQUE;
 extern boost::lockfree::queue< bar, boost::lockfree::fixed_sized<false> > MARKET_K_QUEUE;
+extern char DATETIME[30];
 
 extern sem_t Md_Queue_Write;
 

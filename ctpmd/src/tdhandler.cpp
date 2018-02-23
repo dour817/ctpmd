@@ -35,6 +35,16 @@ void TdHandler :: OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CTh
 		cout  << "**********  trade api logined successfull!  **********" << endl;
 		cout << endl;
 
+		//设置DATETIME
+        strncpy(DATETIME, pRspUserLogin->TradingDay, 4);
+        strncpy(DATETIME+5, pRspUserLogin->TradingDay+4, 2);
+        strncpy(DATETIME+8, pRspUserLogin->TradingDay+6, 2);
+        DATETIME[4] = '-';
+        DATETIME[7] = '-';
+        DATETIME[10] = ' ';
+        strcat(DATETIME, pRspUserLogin->LoginTime);
+
+
 		//投资者结算结果确认
 		CThostFtdcSettlementInfoConfirmField temp1;
 		memset(&temp1,0,sizeof(CThostFtdcSettlementInfoConfirmField));
