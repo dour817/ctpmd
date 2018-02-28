@@ -189,13 +189,13 @@ void* MdHandler :: calcu_k_func(void *arg){
 		delete (market_data_for_k *)p_this_data;
 		p_this_data = NULL;
 
-		//剔除出开盘前数据
+		/*//剔除出开盘前数据
 		hour = atoi(strncpy(temp2char, this_data.UpdateTime, 2));
 		//minute = atoi(strncpy(temp2char, this_data.UpdateTime+3, 2));
         if ( (hour >=15 && hour <=21) || (hour<9 && hour>3) ){
         	//cout << "分钟过滤" << endl;
         	continue;
-        }
+        }*/
 
 		//开始计算，遍历所有合约
         for (vector<bar>::size_type i=0; i<bars.size(); i++){
@@ -233,6 +233,7 @@ void* MdHandler :: calcu_k_func(void *arg){
 
                     //上一根bar bars[i] 推入队列，准备写入mongo
                 	(thisp->MARKET_K_QUEUE).push(bars[i]);
+
                     sem_post(&(thisp->Md_Queue_K));
 
                     //初始化新的一根bar
@@ -266,9 +267,11 @@ void* MdHandler :: write_k2mongo(void *arg){
 
 	mongocxx::uri uri(uristring.c_str());
     mongocxx::client client(uri);
+	//mongocxx::client client{mongocxx::uri{}};
    	mongocxx::database db = client[MONGODB_SETTING.db.c_str()];
    	mongocxx::collection coll;
 	while(true){
+
 		bar this_data;
 		sem_wait(&(thisp->Md_Queue_K));
 
