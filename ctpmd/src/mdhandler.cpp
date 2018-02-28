@@ -259,7 +259,9 @@ void* MdHandler :: calcu_k_func(void *arg){
 void* MdHandler :: write_k2mongo(void *arg){
     MdHandler *thisp = (MdHandler *)arg;
 
-    mongocxx::client client{mongocxx::uri{}};
+    string uristring = "mongodb://" + MONGODB_SETTING.username + ":" + MONGODB_SETTING.password + "@" + MONGODB_SETTING.host + ":" + MONGODB_SETTING.port;
+	mongocxx::uri uri(uristring.c_str());
+    mongocxx::client client(uri);
    	mongocxx::database db = client[MONGODB_SETTING.db.c_str()];
    	mongocxx::collection coll;
 	while(true){
