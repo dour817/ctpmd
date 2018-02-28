@@ -53,7 +53,10 @@ int main() {
 	MONGODB_SETTING = Get_Mongodb_Setting();
 
 	mongocxx::instance inst{};
-	string uristring = "mongodb://" + MONGODB_SETTING.username + ":" + MONGODB_SETTING.password + "@" + MONGODB_SETTING.host + ":" + MONGODB_SETTING.port;
+	string uristring = "mongodb://";
+	if (!MONGODB_SETTING.username.empty())
+		uristring = uristring + MONGODB_SETTING.username + ":" + MONGODB_SETTING.password + "@";
+	uristring = uristring + MONGODB_SETTING.host + ":" + MONGODB_SETTING.port;
 	mongocxx::uri uri(uristring.c_str());
 	//mongocxx::client client{mongocxx::uri{}};
 	mongocxx::client client(uri);

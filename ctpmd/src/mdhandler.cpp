@@ -103,10 +103,10 @@ void MdHandler :: OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMar
 	IHOUR = atoi(strncpy(SHOUR, pDepthMarketData->UpdateTime, 2));
 	IMINUTE = atoi(strncpy(SMINUTE, pDepthMarketData->UpdateTime+3, 2));
 	//minute = atoi(strncpy(temp2char, this_data.UpdateTime+3, 2));
-	if ( (IHOUR >=15 && IHOUR <=21) || (IHOUR<9 && IHOUR>3) || (IHOUR==9 && IMINUTE<30) || (IHOUR==13 && IMINUTE<=30)){
+	/*if ( (IHOUR >=15 && IHOUR <=21) || (IHOUR<9 && IHOUR>3) || (IHOUR==9 && IMINUTE<30) || (IHOUR==13 && IMINUTE<=30)){
 		cout << pDepthMarketData->UpdateTime <<  " 非交易时间行情，过滤" << endl;
 		return;
-	}
+	}*/
 
 	market_data *p_this_data = new market_data;
 	strcpy(p_this_data->TradingDay, pDepthMarketData->TradingDay);
@@ -259,7 +259,11 @@ void* MdHandler :: calcu_k_func(void *arg){
 void* MdHandler :: write_k2mongo(void *arg){
     MdHandler *thisp = (MdHandler *)arg;
 
-    string uristring = "mongodb://" + MONGODB_SETTING.username + ":" + MONGODB_SETTING.password + "@" + MONGODB_SETTING.host + ":" + MONGODB_SETTING.port;
+    string uristring = "mongodb://";
+	if (!MONGODB_SETTING.username.empty())
+		uristring = uristring + MONGODB_SETTING.username + ":" + MONGODB_SETTING.password + "@";
+	uristring = uristring + MONGODB_SETTING.host + ":" + MONGODB_SETTING.port;
+
 	mongocxx::uri uri(uristring.c_str());
     mongocxx::client client(uri);
    	mongocxx::database db = client[MONGODB_SETTING.db.c_str()];
