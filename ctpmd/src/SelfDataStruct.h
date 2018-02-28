@@ -201,6 +201,14 @@ typedef struct mongodb_setting{
     //mongo端口
     string port;
 
+    //用户名
+    string username;
+
+    //密码
+    string password;
+
+    string auth;
+
     //数据库
     string db;
 

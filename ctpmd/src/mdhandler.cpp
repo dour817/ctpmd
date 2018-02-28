@@ -8,6 +8,13 @@
 #include "unistd.h"
 
 using namespace std;
+
+static char SHOUR[2];
+static int IHOUR;
+
+static char SMINUTE[2];
+static int IMINUTE;
+
 MdHandler :: MdHandler(CThostFtdcMdApi *pUserApi, vector<string> code) : m_pUserApi(pUserApi),subcode(code) {}
 
 MdHandler :: ~MdHandler() {}
@@ -91,6 +98,15 @@ void MdHandler :: OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,CTho
 
 void MdHandler :: OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketData)
 {
+
+	//剔除出开盘前数据
+	IHOUR = atoi(strncpy(SHOUR, pDepthMarketData->UpdateTime, 2));
+	IMINUTE = atoi(strncpy(SMINUTE, pDepthMarketData->UpdateTime+3, 2));
+	//minute = atoi(strncpy(temp2char, this_data.UpdateTime+3, 2));
+	if ( (IHOUR >=15 && IHOUR <=21) || (IHOUR<9 && IHOUR>3) || (IHOUR==9 && IMINUTE<30) || (IHOUR==13 && IMINUTE<=30)){
+		cout << pDepthMarketData->UpdateTime <<  " 非交易时间行情，过滤" << endl;
+		return;
+	}
 
 	market_data *p_this_data = new market_data;
 	strcpy(p_this_data->TradingDay, pDepthMarketData->TradingDay);

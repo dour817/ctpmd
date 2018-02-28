@@ -53,7 +53,10 @@ int main() {
 	MONGODB_SETTING = Get_Mongodb_Setting();
 
 	mongocxx::instance inst{};
-	mongocxx::client client{mongocxx::uri{}};
+	string uristring = "mongodb://" + MONGODB_SETTING.username + ":" + MONGODB_SETTING.password + "@" + MONGODB_SETTING.host + ":" + MONGODB_SETTING.port;
+	mongocxx::uri uri(uristring.c_str());
+	//mongocxx::client client{mongocxx::uri{}};
+	mongocxx::client client(uri);
 	mongocxx::database db = client[MONGODB_SETTING.db.c_str()];
 
 	//初始化信号量 通知行情Spi实例开始工作
@@ -150,8 +153,7 @@ void start_rev_md(vector<string> code_list, int instance_num, mongocxx::database
 
     //循环将tick行情队列的tick数据写入mongo
     market_data *p_this_data;
-    char temp2char[2];
-    int hour;
+
 	while(true){
 
 		//等待tick行情队列有数据过来。
@@ -161,14 +163,6 @@ void start_rev_md(vector<string> code_list, int instance_num, mongocxx::database
 	    market_data this_data = *p_this_data;
 	    delete (market_data*)p_this_data;
 		p_this_data = NULL;
-
-		//剔除出开盘前数据
-		hour = atoi(strncpy(temp2char, this_data.UpdateTime, 2));
-		//minute = atoi(strncpy(temp2char, this_data.UpdateTime+3, 2));
-		if ( (hour >=15 && hour <=21) || (hour<9 && hour>3) ){
-			//cout << "tick过滤" << endl;
-			continue;
-		}
 
         coll = db[this_data.InstrumentID];
 
@@ -322,7 +316,11 @@ mongodb_setting Get_Mongodb_Setting(){
 	//数据库名
 	result.db = tag_setting.get<string>("db","");
 
+	result.username = tag_setting.get<string>("username","");
 
+	result.password = tag_setting.get<string>("password","");
+
+	result.auth = tag_setting.get<string>("auth","");
 	return result;
 }
 
