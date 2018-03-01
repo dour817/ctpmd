@@ -103,7 +103,7 @@ void MdHandler :: OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMar
 	IHOUR = atoi(strncpy(SHOUR, pDepthMarketData->UpdateTime, 2));
 	IMINUTE = atoi(strncpy(SMINUTE, pDepthMarketData->UpdateTime+3, 2));
 	//minute = atoi(strncpy(temp2char, this_data.UpdateTime+3, 2));
-	if ( (IHOUR >=15 && IHOUR <=21) || (IHOUR<9 && IHOUR>3) || (IHOUR==9 && IMINUTE<30) || (IHOUR==13 && IMINUTE<=30)){
+	if ( (IHOUR >=15 && IHOUR <=21) || (IHOUR<9 && IHOUR>3) || (IHOUR==11 && IMINUTE>30) ){
 		cout << pDepthMarketData->UpdateTime <<  " 非交易时间行情，过滤" << endl;
 		return;
 	}
