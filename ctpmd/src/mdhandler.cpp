@@ -290,7 +290,7 @@ void* MdHandler :: write_k2mongo(void *arg){
 		doc.append(bsoncxx::builder::basic::kvp("ClosePrice", this_data.ClosePrice));
 		doc.append(bsoncxx::builder::basic::kvp("Volume", this_data.Volume));
 
-		//coll.insert_one(doc.view());
+		coll.insert_one(doc.view());
 
 		//临时打印
 		cout << "1分钟K线 " <<  this_data.UpdateTime << "   " << this_data.InstrumentID << "  "<< this_data.OpenPrice << \
