@@ -63,6 +63,8 @@ private:
 	// 行情bar队列，队列bar依次写入mongo
 	boost::lockfree::queue< bar, boost::lockfree::capacity<12800>  > MARKET_K_QUEUE;
 
+	string ActionDay;
+
 };
 
 

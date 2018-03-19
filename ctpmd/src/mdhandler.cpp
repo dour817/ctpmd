@@ -69,6 +69,7 @@ void MdHandler :: OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,CTho
 		sem_wait(&Trader_Thread);
 	*/
 
+	this->ActionDay = pRspUserLogin->LoginDate
 	char **p = new char *[subcode.size()];
 	for(vector<string>::size_type beg=0; beg!=subcode.size(); beg++)
 	{
