@@ -40,7 +40,7 @@ def main():
         else:
             if isrun:
                 #杀掉进程
-                print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '交易时间，程序已经启动，准备关掉......')
+                print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '非交易时间，程序已经启动，准备关掉......')
                 p = psutil.Process(isrun)
                 p.kill()
             else:
