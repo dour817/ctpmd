@@ -44,7 +44,7 @@ def main():
                 p = psutil.Process(isrun)
                 p.kill()
             else:
-                print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '交易时间，程序未启动')
+                print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '非交易时间，程序未启动')
         if isOnTime:
             time.sleep(2)
         else:
