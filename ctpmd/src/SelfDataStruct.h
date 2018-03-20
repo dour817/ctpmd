@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 #include <regex>
+#include <map>
 
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/json.hpp>

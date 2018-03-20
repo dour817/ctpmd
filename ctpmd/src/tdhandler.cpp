@@ -44,6 +44,11 @@ void TdHandler :: OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CTh
         DATETIME[10] = ' ';
         strcat(DATETIME, pRspUserLogin->LoginTime);
 
+        strncpy(LOGINHOUR, DATETIME+11 ,2);
+        strncpy(LOGINMINUTE, DATETIME+14 ,2);
+        LOGINHOUR[2] = '\0';
+        LOGINMINUTE[2] = '\0';
+
 
 		//投资者结算结果确认
 		CThostFtdcSettlementInfoConfirmField temp1;

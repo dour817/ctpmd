@@ -18,6 +18,10 @@ instrument_setting INSTRUMENT_SETTING;
 //自然日期和时间 yyyy-mm-dd HH:MM:SS
 char DATETIME[30];
 
+char LOGINHOUR[3];
+
+char LOGINMINUTE[3];
+
 //全局变量，所有订阅合约列表
 vector<string> ALL_CODE;
 
@@ -162,6 +166,7 @@ void start_rev_md(vector<string> code_list, int instance_num, mongocxx::database
 		//等待tick行情队列有数据过来。
 		sem_wait(&Md_Queue_Write);
 
+		//cout << "****************************tick **********************************8" << endl;
 	    MARKET_QUEQUE.pop(p_this_data);
 	    market_data this_data = *p_this_data;
 	    delete (market_data*)p_this_data;

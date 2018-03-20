@@ -16,6 +16,8 @@ extern mongodb_setting MONGODB_SETTING;
 extern boost::lockfree::queue< market_data*, boost::lockfree::fixed_sized<false> > MARKET_QUEQUE;
 extern boost::lockfree::queue< bar, boost::lockfree::fixed_sized<false> > MARKET_K_QUEUE;
 extern char DATETIME[30];
+extern char LOGINHOUR[3];
+extern char LOGINMINUTE[3];
 
 extern sem_t Md_Queue_Write;
 
