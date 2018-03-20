@@ -107,6 +107,7 @@ void MdHandler :: OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMar
 	IMINUTE = atoi(strncpy(SMINUTE, pDepthMarketData->UpdateTime+3, 2));
 
 
+	//粗略过滤。
     //白天8点到19点之间登录，却收到 16点以后，或者 凌晨1点和2点的行情
 	if (atoi(LOGINHOUR)>=8 && atoi(LOGINHOUR) < 20 && (IHOUR> 15||IHOUR<=2)){
 		cout << pDepthMarketData->UpdateTime <<  " 日盘收到夜盘时间行情，过滤" << endl;
@@ -451,10 +452,18 @@ void* MdHandler :: write_k2mongo(void *arg){
 				strcmp(temptime,"15:00") ==0)
 			continue;*/
 
+
+		// 早上8点到9点之间的k线过滤
 		if (strcmp(temptime,"09:00")<0 && strcmp(temptime,"08:00")>0)
 			continue;
-
+		// 晚上20点到12点之间的k线过滤
 		if (strcmp(temptime,"21:00")<0 && strcmp(temptime,"20:00")>0)
+			continue;
+		// 下午15点到16点之间的k线过滤
+		if (strcmp(temptime,"15:00")>=0 && strcmp(temptime,"16:00")<0)
+			continue;
+		// 中午11：30到13点之间的k线过滤
+		if (strcmp(temptime,"11:30")>=0 && strcmp(temptime,"13:00")< 0 )
 			continue;
 
 		strptime(this_data.UpdateTime, "%Y-%m-%d %H:%M", &tm_time);
