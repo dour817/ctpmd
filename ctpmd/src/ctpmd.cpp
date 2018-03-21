@@ -22,6 +22,9 @@ char LOGINHOUR[3];
 
 char LOGINMINUTE[3];
 
+//每个合约的状态map
+map<string, instrument_status> map_ins_status;
+
 //全局变量，所有订阅合约列表
 vector<string> ALL_CODE;
 

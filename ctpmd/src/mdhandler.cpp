@@ -220,8 +220,7 @@ void* MdHandler :: calcu_k_func(void *arg){
 		p_this_data = NULL;
 
 		strncpy(tempthistime, this_data.UpdateTime, 5);
-		//cout << "thistime: " << thistime << endl;
-		//cout << "tempthistime: " << tempthistime << endl;
+
 		if (strcmp(thistime, tempthistime) <0){
 
 			//新的一分钟开始
@@ -438,6 +437,9 @@ void* MdHandler :: write_k2mongo(void *arg){
    	mongocxx::collection coll;
    	char temptime[6] = {'\0'};
 
+   	map<string,instrument_status>::iterator it;
+
+   	char status;
    	tm tm_time;
    	time_t timep;
 	while(true){
@@ -448,16 +450,25 @@ void* MdHandler :: write_k2mongo(void *arg){
 		(thisp->MARKET_K_QUEUE).pop(this_data);
 		strncpy(temptime, this_data.UpdateTime + 11, 5);
 
-		/*
-		if (strcmp(temptime,"10:30") ==0 || strcmp(temptime,"11:30") ==0 || \
-				strcmp(temptime,"15:00") ==0)
-			continue;*/
+		it = map_ins_status.find(this_data.InstrumentID);
+
+		pthread_mutex_lock( &((it->second).lock) );
+		status = (it->second).status;
+		pthread_mutex_unlock( &((it->second).lock) );
+		if (status!='2'){
+			//非交易
+			if (! (strcmp(temptime,"10:14")==0 || strcmp(temptime,"11:29")==0 || strcmp(temptime,"14:59")==0 \
+					|| strcmp(temptime,"22:59")==0 || strcmp(temptime,"23:29")==0 || strcmp(temptime,"00:59")==0\
+					|| strcmp(temptime,"02:29")==0) ){
+				continue;
+			}
+		}
 
 
 		// 早上8点到9点之间的k线过滤
 		if (strcmp(temptime,"09:00")<0 && strcmp(temptime,"08:00")>0)
 			continue;
-		// 晚上20点到12点之间的k线过滤
+		// 晚上20点到21点之间的k线过滤
 		if (strcmp(temptime,"21:00")<0 && strcmp(temptime,"20:00")>0)
 			continue;
 		// 下午15点到16点之间的k线过滤

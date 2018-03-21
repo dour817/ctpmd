@@ -125,5 +125,14 @@ void TdHandler :: OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CTh
 	}
 }
 
+///合约交易状态通知
+void TdHandler :: OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField *pInstrumentStatus){
+	map<string,instrument_status>::iterator it = map_ins_status.find(pInstrumentStatus->InstrumentID);
+
+	pthread_mutex_lock( &((it->second).lock) );
+	(it->second).status = pInstrumentStatus->InstrumentStatus;
+	pthread_mutex_unlock( &((it->second).lock) );
+}
+
 
 

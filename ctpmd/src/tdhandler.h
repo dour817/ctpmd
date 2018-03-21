@@ -18,6 +18,7 @@ extern account_setting ACC_SETTING;
 extern char DATETIME[30];
 extern char LOGINHOUR[3];
 extern char LOGINMINUTE[3];
+extern map<string, instrument_status> map_ins_status;
 
 using namespace std;
 
@@ -34,7 +35,7 @@ public:
 	virtual void OnRspSettlementInfoConfirm(CThostFtdcSettlementInfoConfirmField *pSettlementInfoConfirm, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
 	virtual void OnRspUserLogout(CThostFtdcUserLogoutField *pUserLogout, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
  	virtual void OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast);
-
+ 	virtual void OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField *pInstrumentStatus);
 private:
 	CThostFtdcTraderApi *m_pTraderApi;
 };
