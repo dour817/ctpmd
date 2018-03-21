@@ -209,7 +209,7 @@ void start_rev_md(vector<string> code_list, int instance_num, mongocxx::database
 
         coll.insert_one(doc.view());
 	    //临时打印
-        //cout << this_data.UpdateTime << "   " << this_data.InstrumentID << "  "<< this_data.LastPrice << endl;
+        cout << this_data.UpdateTime << "   " << this_data.InstrumentID << "  "<< this_data.LastPrice << endl;
 	}
 
 }

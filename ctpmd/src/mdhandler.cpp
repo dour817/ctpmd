@@ -464,7 +464,7 @@ void* MdHandler :: write_k2mongo(void *arg){
 	//mongocxx::client client{mongocxx::uri{}};
    	mongocxx::database db = client[MONGODB_SETTING.db.c_str()];
    	mongocxx::collection coll;
-   	char temptime[6] = {'\0'};
+   	char thismdtime[6] = {'\0'};
 
    	map<string,instrument_status>::iterator it;
 
@@ -477,7 +477,7 @@ void* MdHandler :: write_k2mongo(void *arg){
 
 		sem_wait(&(thisp->Md_Queue_K));
 		(thisp->MARKET_K_QUEUE).pop(this_data);
-		strncpy(temptime, this_data.UpdateTime + 11, 5);
+		strncpy(thismdtime, this_data.UpdateTime + 11, 5);
 
 		it = map_ins_status.find(this_data.InstrumentID);
 
@@ -487,25 +487,25 @@ void* MdHandler :: write_k2mongo(void *arg){
 		pthread_mutex_unlock( &((it->second).lock) );
 		if (status!='2'){
 			//非交易
-			if (! (strcmp(temptime,"10:14")==0 || strcmp(temptime,"11:29")==0 || strcmp(temptime,"14:59")==0 \
-					|| strcmp(temptime,"22:59")==0 || strcmp(temptime,"23:29")==0 || strcmp(temptime,"00:59")==0\
-					|| strcmp(temptime,"02:29")==0) ){
+			if (! (strcmp(thismdtime,"10:14")==0 || strcmp(thismdtime,"11:29")==0 || strcmp(thismdtime,"14:59")==0 \
+					|| strcmp(thismdtime,"22:59")==0 || strcmp(thismdtime,"23:29")==0 || strcmp(thismdtime,"00:59")==0\
+					|| strcmp(thismdtime,"02:29")==0) ){
 				continue;
 			}
 		}
 
 
 		// 早上8点到9点之间的k线过滤
-		if (strcmp(temptime,"09:00")<0 && strcmp(temptime,"08:00")>0)
+		if (strcmp(thismdtime,"09:00")<0 && strcmp(thismdtime,"08:00")>0)
 			continue;
 		// 晚上20点到21点之间的k线过滤
-		if (strcmp(temptime,"21:00")<0 && strcmp(temptime,"20:00")>0)
+		if (strcmp(thismdtime,"21:00")<0 && strcmp(thismdtime,"20:00")>0)
 			continue;
 		// 下午15点到16点之间的k线过滤
-		if (strcmp(temptime,"15:00")>=0 && strcmp(temptime,"16:00")<0)
+		if (strcmp(thismdtime,"15:00")>=0 && strcmp(thismdtime,"16:00")<0)
 			continue;
 		// 中午11：30到13点之间的k线过滤
-		if (strcmp(temptime,"11:30")>=0 && strcmp(temptime,"13:00")< 0 )
+		if (strcmp(thismdtime,"11:30")>=0 && strcmp(thismdtime,"13:00")< 0 )
 			continue;
 
 		strptime(this_data.UpdateTime, "%Y-%m-%d %H:%M", &tm_time);
