@@ -205,8 +205,6 @@ void start_rev_md(vector<string> code_list, int instance_num, mongocxx::database
         coll.insert_one(doc.view());
 	    //临时打印
         cout << this_data.UpdateTime << "   " << this_data.InstrumentID << "  "<< this_data.LastPrice << endl;
-
-
 	}
 
 }
@@ -247,7 +245,6 @@ vector<string> Get_All_SubInstrument_Code(instrument_setting arg){
 	//p_tdreq->Join();
 
 	cout << "全市场共  " << ALL_CODE.size() << " 个合约" << endl;
-
 
     if(arg.instrument[0]=="" && arg.instrument.size()==1){
         // 配置文件没有指定具体订阅哪些具体合约

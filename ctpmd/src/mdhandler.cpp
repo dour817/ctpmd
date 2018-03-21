@@ -60,6 +60,7 @@ void MdHandler :: OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,CTho
 		cout << "**********  行情接口登录成功!  **********" << endl;
 		cout << endl;
 	}
+
 	/*ifstream readInstrument;
 	readInstrument.open("./instrument.txt");
 	string contract;
@@ -116,10 +117,11 @@ void MdHandler :: OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMar
 	//minute = atoi(strncpy(temp2char, this_data.UpdateTime+3, 2));
 
 	//16点-20点，或 凌晨3点-早上8点 或 中午11点半到12点的数据
-	if ( (IHOUR >15 && IHOUR < 21) || (IHOUR<9 && IHOUR>=3) || (IHOUR==11 && IMINUTE>30) ){
+	if ( (IHOUR >15 && IHOUR < 20) || (IHOUR<8 && IHOUR>=3) || (IHOUR==11 && IMINUTE>30) ){
 		cout << pDepthMarketData->UpdateTime <<  " 非交易时间行情，过滤" << endl;
 		return;
 	}
+
 
     //cout <<  pDepthMarketData->UpdateTime << " " << pDepthMarketData->InstrumentID << endl;
 	market_data *p_this_data = new market_data;
@@ -269,7 +271,7 @@ void* MdHandler :: calcu_k_func(void *arg){
 			(it->second).back().TotalVolume = this_data.Volume;
 
 
-		}else if(strcmp(thistime, tempthistime) > 0){
+		}else if(strcmp(thistime, tempthistime) == 0){
 
 			//收到的行情时间小于当前时间，表明本笔行情延迟了,并且假设延迟不超过一分钟，即延迟收到的行情是上一分钟的行情。
 			cout << this_data.UpdateTime << "  " << this_data.InstrumentID << " 行情延迟" << endl;
@@ -445,7 +447,6 @@ void* MdHandler :: write_k2mongo(void *arg){
 		sem_wait(&(thisp->Md_Queue_K));
 		(thisp->MARKET_K_QUEUE).pop(this_data);
 		strncpy(temptime, this_data.UpdateTime + 11, 5);
-		cout << "时间戳： " << timep << "  时间："<< temptime << endl;
 
 		/*
 		if (strcmp(temptime,"10:30") ==0 || strcmp(temptime,"11:30") ==0 || \
