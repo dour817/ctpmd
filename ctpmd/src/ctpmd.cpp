@@ -54,6 +54,8 @@ boost::lockfree::queue< market_data*, boost::lockfree::fixed_sized<false> > MARK
 // 行情bar队列，队列bar依次写入mongo
 boost::lockfree::queue< bar, boost::lockfree::fixed_sized<false> > MARKET_K_QUEUE(12800);
 
+// 日收盘行情队列，收盘后才用到
+boost::lockfree::queue< market_data, boost::lockfree::fixed_sized<false> > CLOSE_MARKET_QUEQUE(12800);
 
 int main() {
 	//读取mongo配置
@@ -207,7 +209,7 @@ void start_rev_md(vector<string> code_list, int instance_num, mongocxx::database
 
         coll.insert_one(doc.view());
 	    //临时打印
-        cout << this_data.UpdateTime << "   " << this_data.InstrumentID << "  "<< this_data.LastPrice << endl;
+        //cout << this_data.UpdateTime << "   " << this_data.InstrumentID << "  "<< this_data.LastPrice << endl;
 	}
 
 }
@@ -235,6 +237,13 @@ vector<string> Get_All_SubInstrument_Code(instrument_setting arg){
 		char *p = const_cast<char*>(ACC_SETTING.traderaddress[i].c_str());
 		p_tdreq->RegisterFront(p);
 	}
+	// 初始化map_ins_status
+	for(vector<string>::size_type i = 0; i<ALL_CODE.size(); i++){
+		instrument_status temp;
+		temp.status = '0';
+		temp.lock = PTHREAD_MUTEX_INITIALIZER;
+		map_ins_status.insert(pair<string, instrument_status>(ALL_CODE[i], temp));
+	}
 
 	//启动交易接口线程
 	p_tdreq->Init();
@@ -242,9 +251,9 @@ vector<string> Get_All_SubInstrument_Code(instrument_setting arg){
 	// 等待全市场合约查询返回
 	sem_wait(&Md_Thread);
 
-	//交易接口工作完成，释放。
-	p_tdreq->Release();
-	p_tdreq = NULL;
+	//交易接口工作完成，释放。 需要接收合约状态，所以交易接口不能释放
+	//p_tdreq->Release();
+	//p_tdreq = NULL;
 	//p_tdreq->Join();
 
 	cout << "全市场共  " << ALL_CODE.size() << " 个合约" << endl;

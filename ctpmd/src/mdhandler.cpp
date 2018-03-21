@@ -9,11 +9,6 @@
 
 using namespace std;
 
-static char SHOUR[2];
-static int IHOUR;
-
-static char SMINUTE[2];
-static int IMINUTE;
 
 MdHandler :: MdHandler(CThostFtdcMdApi *pUserApi, vector<string> code) : m_pUserApi(pUserApi),subcode(code) {}
 
@@ -103,21 +98,55 @@ void MdHandler :: OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,CTho
 void MdHandler :: OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMarketData)
 {
 
-	//剔除出开盘前数据
-	IHOUR = atoi(strncpy(SHOUR, pDepthMarketData->UpdateTime, 2));
-	IMINUTE = atoi(strncpy(SMINUTE, pDepthMarketData->UpdateTime+3, 2));
+	int ihour;
+	int iminute;
+	char chour[3] ={'\0'};
+	char cminute[3] ={'\0'};
+	ihour = atoi(strncpy(chour, pDepthMarketData->UpdateTime, 2));
+	iminute = atoi(strncpy(cminute, pDepthMarketData->UpdateTime+3, 2));
 
+	// 存日行情数据
+	/*
+	if (IHOUR == 15 && pDepthMarketData->SettlementPrice > 0 && pDepthMarketData->SettlementPrice <9999999){
+		market_data *p_this_data = new market_data;
+		strcpy(p_this_data->TradingDay, pDepthMarketData->TradingDay);
+		strcpy(p_this_data->InstrumentID, pDepthMarketData->InstrumentID);
+		p_this_data->LastPrice = pDepthMarketData->LastPrice;
+		p_this_data->PreSettlementPrice = pDepthMarketData->PreSettlementPrice;
+		p_this_data->PreClosePrice = pDepthMarketData->PreClosePrice;
+		p_this_data->PreOpenInterest = pDepthMarketData->PreOpenInterest;
+		p_this_data->OpenPrice = pDepthMarketData->OpenPrice;
+		p_this_data->HighestPrice = pDepthMarketData->HighestPrice;
+		p_this_data->LowestPrice = pDepthMarketData->LowestPrice;
+		p_this_data->Volume = pDepthMarketData->Volume;
+		p_this_data->Turnover = pDepthMarketData->Turnover;
+		p_this_data->OpenInterest = pDepthMarketData->OpenInterest;
+		p_this_data->UpperLimitPrice = pDepthMarketData->UpperLimitPrice;
+		p_this_data->LowerLimitPrice = pDepthMarketData->LowerLimitPrice;
+		strcpy(p_this_data->UpdateTime, pDepthMarketData->UpdateTime);
+		p_this_data->UpdateMillisec = pDepthMarketData->UpdateMillisec;
+		p_this_data->BidPrice1 = pDepthMarketData->BidPrice1;
+		p_this_data->BidVolume1 = pDepthMarketData->BidVolume1;
+		p_this_data->AskPrice1 = pDepthMarketData->AskPrice1;
+		p_this_data->AskVolume1 = pDepthMarketData->AskVolume1;
+		strcpy(p_this_data->ActionDay, pDepthMarketData->ActionDay);
 
+		//推入写tick队列
+		MARKET_QUEQUE.push(p_this_data);
+		sem_post(&Md_Queue_Write);
+	}
+*/
 	//粗略过滤。
     //白天8点到19点之间登录，却收到 16点以后，或者 凌晨1点和2点的行情
-	if (atoi(LOGINHOUR)>=8 && atoi(LOGINHOUR) < 20 && (IHOUR> 15||IHOUR<=2)){
+	if (atoi(LOGINHOUR)>=8 && atoi(LOGINHOUR) < 20 && (ihour> 15||ihour<=2)){
 		cout << pDepthMarketData->UpdateTime <<  " 日盘收到夜盘时间行情，过滤" << endl;
 		return;
 	}
 	//minute = atoi(strncpy(temp2char, this_data.UpdateTime+3, 2));
 
 	//16点-20点，或 凌晨3点-早上8点 或 中午11点半到12点的数据
-	if ( (IHOUR >15 && IHOUR < 20) || (IHOUR<8 && IHOUR>=3) || (IHOUR==11 && IMINUTE>30) ){
+	// 3 4 5 6 7 12 16 17 18 19 11：30 的行情数据过滤
+	if ( (ihour >15 && ihour < 20) || (ihour<8 && ihour>=3) || (ihour==11 && iminute>30) || ihour == 12 ){
 		cout << pDepthMarketData->UpdateTime <<  " 非交易时间行情，过滤" << endl;
 		return;
 	}
@@ -152,6 +181,7 @@ void MdHandler :: OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMar
 	sem_post(&Md_Queue_Write);
 
     market_data_for_k *p_this_data_k = new market_data_for_k;
+    memset(p_this_data_k, 0, sizeof(market_data_for_k));
 	strcpy( p_this_data_k->TradingDay, pDepthMarketData->TradingDay );
 	strcpy( p_this_data_k->InstrumentID, pDepthMarketData->InstrumentID );
 	p_this_data_k->LastPrice = pDepthMarketData->LastPrice;
@@ -197,21 +227,21 @@ void* MdHandler :: calcu_k_func(void *arg){
 
     // 循环接收每个tick行情，计算k线
     market_data_for_k *p_this_data;
-    //char temp2char[2];
-    //int hour;
-    char lasttime[6];
-    lasttime[5] = '\0';
-    char thistime[6];
-    thistime[5] = '\0';
-    strncpy(thistime, DATETIME+11, 5);
 
-    char tempthistime[6];
+    //上一根k线时间
+    char lastktime[6] = {'\0'};
+
+    //当前k线时间
+    char nowktime[6] = {'\0'};
+    strncpy(nowktime, DATETIME+11, 5);
+
+    //本次收到的tick行情时间(分钟)
+    char revmdtime[6] = {'\0'};
+
 	while(true){
 
 		//等待行情数据推过来
 		sem_wait(&(thisp->k_signal));
-
-		//计算全局时间，所属分钟
 
 		//提取行情数据
 		thisp->market_tick_queue.pop(p_this_data);
@@ -219,19 +249,19 @@ void* MdHandler :: calcu_k_func(void *arg){
 		delete (market_data_for_k *)p_this_data;
 		p_this_data = NULL;
 
-		strncpy(tempthistime, this_data.UpdateTime, 5);
+		strncpy(revmdtime, this_data.UpdateTime, 5);
 
-		if (strcmp(thistime, tempthistime) <0){
+		if (strcmp(nowktime, revmdtime) <0){
 
 			//新的一分钟开始
-			strncpy(lasttime, thistime, 5);
-			strncpy(thistime, tempthistime, 5);
+			strncpy(lastktime, nowktime, 5);
+			strncpy(nowktime, revmdtime, 5);
 
 			//将所有bars内所有合约的bar循环写入mongo。
 			for (map< string,vector<bar> >::iterator ite = bars.begin(); ite!=bars.end();ite++){
 
 				//bar时间 HH:SS
-				strncpy(((ite->second).back().UpdateTime)+11, lasttime, 5);
+				strncpy(((ite->second).back().UpdateTime)+11, lastktime, 5);
 				//成交量
 				(ite->second).back().Volume = (ite->second).back().TotalVolume - (ite->second).front().TotalVolume;
 				//推入待写bar队列
@@ -239,7 +269,6 @@ void* MdHandler :: calcu_k_func(void *arg){
 
 				//当前bar前推赋值给上一个根bar
 				(ite->second).front() = (ite->second).back();
-
 				//重置当前bar
 				ite->second.back().OpenPrice = ite->second.back().ClosePrice;
 				ite->second.back().HighPrice = ite->second.back().ClosePrice;
@@ -250,7 +279,7 @@ void* MdHandler :: calcu_k_func(void *arg){
 				sem_post(&(thisp->Md_Queue_K));
 			}
 
-		}else if (strcmp(thistime, tempthistime) == 0){
+		}else if (strcmp(nowktime, revmdtime) == 0){
 			//分钟内
 			//找到合约
 		    it=bars.find(this_data.InstrumentID);
@@ -270,7 +299,7 @@ void* MdHandler :: calcu_k_func(void *arg){
 			(it->second).back().TotalVolume = this_data.Volume;
 
 
-		}else if(strcmp(thistime, tempthistime) == 0){
+		}/*else if(strcmp(thistime, tempthistime) > 0){
 
 			//收到的行情时间小于当前时间，表明本笔行情延迟了,并且假设延迟不超过一分钟，即延迟收到的行情是上一分钟的行情。
 			cout << this_data.UpdateTime << "  " << this_data.InstrumentID << " 行情延迟" << endl;
@@ -300,7 +329,7 @@ void* MdHandler :: calcu_k_func(void *arg){
 
 			sem_post(&(thisp->Md_Queue_K));
 		}
-
+*/
 
 /*
 		//剔除出开盘前数据
@@ -454,6 +483,7 @@ void* MdHandler :: write_k2mongo(void *arg){
 
 		pthread_mutex_lock( &((it->second).lock) );
 		status = (it->second).status;
+		//cout << this_data.InstrumentID <<  "  status :"<< status << endl;
 		pthread_mutex_unlock( &((it->second).lock) );
 		if (status!='2'){
 			//非交易
