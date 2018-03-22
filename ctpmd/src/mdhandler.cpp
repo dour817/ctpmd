@@ -261,8 +261,13 @@ void* MdHandler :: calcu_k_func(void *arg){
 			(it->second).back().HighPrice = this_data.LastPrice;
 			(it->second).back().LowPrice = this_data.LastPrice;
 			(it->second).back().ClosePrice = this_data.LastPrice;
-			(it->second).front().TotalVolume = this_data.Volume;
 			(it->second).back().TotalVolume = this_data.Volume;
+
+			(it->second).front().OpenPrice = this_data.LastPrice;
+			(it->second).front().HighPrice = this_data.LastPrice;
+			(it->second).front().LowPrice = this_data.LastPrice;
+			(it->second).front().ClosePrice = this_data.LastPrice;
+			(it->second).front().TotalVolume = this_data.Volume;
 		}
 
 
