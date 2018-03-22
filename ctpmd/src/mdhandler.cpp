@@ -210,16 +210,17 @@ void* MdHandler :: calcu_k_func(void *arg){
         bar temp_bar;
         strcpy(temp_bar.InstrumentID, (thisp->subcode)[i].c_str());
         strncpy(temp_bar.UpdateTime, DATETIME, 16);
-        temp_bar.OpenPrice = 0;
-        temp_bar.HighPrice = 0;
+        temp_bar.OpenPrice = -1;
+        temp_bar.HighPrice = -1;
         temp_bar.LowPrice = 10000000.0;
-        temp_bar.ClosePrice = 0;
+        temp_bar.ClosePrice = -1;
         temp_bar.Volume = 0;
         temp_bar.TotalVolume = 0;
         temp_bar.LastTotalVolume = 0;
         vector<bar> twobar;
         twobar.push_back(temp_bar);
         twobar.push_back(temp_bar);
+
         bars.insert(pair<string,vector<bar>>(temp_bar.InstrumentID, twobar));
     }
 
@@ -238,6 +239,7 @@ void* MdHandler :: calcu_k_func(void *arg){
     //本次收到的tick行情时间(分钟)
     char revmdtime[6] = {'\0'};
 
+    int loginhour;
 	while(true){
 
 		//等待行情数据推过来
@@ -248,6 +250,21 @@ void* MdHandler :: calcu_k_func(void *arg){
 		market_data_for_k this_data = *p_this_data;
 		delete (market_data_for_k *)p_this_data;
 		p_this_data = NULL;
+
+		//找到合约
+		it=bars.find(this_data.InstrumentID);
+		//处理盘中启动时 第一跟bar开盘价为0的bug
+		loginhour = atoi(LOGINHOUR);
+		if ((it->second).front().OpenPrice == -1 && ((loginhour >=9 && loginhour<15) || (loginhour >=21 && loginhour<3)) ){
+			//程序启动后本合约第一笔数据
+			(it->second).back().OpenPrice = this_data.LastPrice;
+			(it->second).back().HighPrice = this_data.LastPrice;
+			(it->second).back().LowPrice = this_data.LastPrice;
+			(it->second).back().ClosePrice = this_data.LastPrice;
+			(it->second).front().TotalVolume = this_data.Volume;
+			(it->second).back().TotalVolume = this_data.Volume;
+		}
+
 
 		strncpy(revmdtime, this_data.UpdateTime, 5);
 
@@ -281,8 +298,7 @@ void* MdHandler :: calcu_k_func(void *arg){
 
 		}else if (strcmp(nowktime, revmdtime) == 0){
 			//分钟内
-			//找到合约
-		    it=bars.find(this_data.InstrumentID);
+
 
 		    //更新收盘价
 			it->second.back().ClosePrice = this_data.LastPrice;
