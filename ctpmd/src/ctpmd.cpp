@@ -229,21 +229,17 @@ vector<string> Get_All_SubInstrument_Code(instrument_setting arg){
 	p_tdreq->RegisterSpi(&shtrader);
 
 	//订阅各种流
-	p_tdreq->SubscribePrivateTopic(THOST_TERT_QUICK);
-	p_tdreq->SubscribePublicTopic(THOST_TERT_QUICK);
+	p_tdreq->SubscribePrivateTopic(THOST_TERT_RESUME);
+	p_tdreq->SubscribePublicTopic(THOST_TERT_RESTART);
 
 	//注册交易前置地址
 	for ( vector<string>::size_type i = 0; i<ACC_SETTING.traderaddress.size(); i++ ){
 		char *p = const_cast<char*>(ACC_SETTING.traderaddress[i].c_str());
 		p_tdreq->RegisterFront(p);
 	}
-	// 初始化map_ins_status
-	for(vector<string>::size_type i = 0; i<ALL_CODE.size(); i++){
-		instrument_status temp;
-		temp.status = '0';
-		temp.lock = PTHREAD_MUTEX_INITIALIZER;
-		map_ins_status.insert(pair<string, instrument_status>(ALL_CODE[i], temp));
-	}
+
+
+
 
 	//启动交易接口线程
 	p_tdreq->Init();
@@ -255,7 +251,19 @@ vector<string> Get_All_SubInstrument_Code(instrument_setting arg){
 	//p_tdreq->Release();
 	//p_tdreq = NULL;
 	//p_tdreq->Join();
-
+	// 初始化map_ins_status 盘中登录不会收到交易所的状态通知，如果盘中登录，则手动初始化map_ins_status
+	/*
+	int loginhour = atoi(LOGINHOUR);
+	if ( (loginhour >= 9 && loginhour <15) || (loginhour >= 21 || loginhour <=3) ){
+		//开盘钱正常登录
+		for(vector<string>::size_type i = 0; i<ALL_CODE.size(); i++){
+			instrument_status temp;
+			temp.status = '2';
+			temp.lock = PTHREAD_MUTEX_INITIALIZER;
+			map_ins_status.insert(pair<string, instrument_status>(ALL_CODE[i], temp));
+		}
+    }
+	*/
 	cout << "全市场共  " << ALL_CODE.size() << " 个合约" << endl;
 
     if(arg.instrument[0]=="" && arg.instrument.size()==1){

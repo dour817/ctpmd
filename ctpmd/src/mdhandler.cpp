@@ -251,8 +251,8 @@ void* MdHandler :: calcu_k_func(void *arg){
 
 		strncpy(revmdtime, this_data.UpdateTime, 5);
 
-		if (strcmp(nowktime, revmdtime) <0){
-
+		if (strcmp(nowktime, revmdtime) <0 || (strcmp(nowktime, "23:58")>=0 && strcmp(revmdtime, "00:01")<=0)){
+			//cout << "nowktime:"<<nowktime << " revmdtime:"<< revmdtime << endl;
 			//新的一分钟开始
 			strncpy(lastktime, nowktime, 5);
 			strncpy(nowktime, revmdtime, 5);
@@ -471,28 +471,70 @@ void* MdHandler :: write_k2mongo(void *arg){
    	char status;
    	tm tm_time;
    	time_t timep;
+
+   	//等待品种交易状态推送完毕。
+    sleep(2);
+
 	while(true){
 
 		bar this_data;
 
 		sem_wait(&(thisp->Md_Queue_K));
+
 		(thisp->MARKET_K_QUEUE).pop(this_data);
 		strncpy(thismdtime, this_data.UpdateTime + 11, 5);
 
-		it = map_ins_status.find(this_data.InstrumentID);
+		//品种代码
+		//去掉数字
 
-		pthread_mutex_lock( &((it->second).lock) );
-		status = (it->second).status;
-		//cout << this_data.InstrumentID <<  "  status :"<< status << endl;
-		pthread_mutex_unlock( &((it->second).lock) );
-		if (status!='2'){
-			//非交易
-			if (! (strcmp(thismdtime,"10:14")==0 || strcmp(thismdtime,"11:29")==0 || strcmp(thismdtime,"14:59")==0 \
-					|| strcmp(thismdtime,"22:59")==0 || strcmp(thismdtime,"23:29")==0 || strcmp(thismdtime,"00:59")==0\
-					|| strcmp(thismdtime,"02:29")==0) ){
-				continue;
+
+		char pinzhong[50]={'\0'};
+		strcpy(pinzhong, this_data.InstrumentID);
+
+		for (unsigned int i = 0; i < strlen(pinzhong); i++){
+			if ((*(this_data.InstrumentID + i) >='0' && *(this_data.InstrumentID + i) <='9') || *(this_data.InstrumentID + i) =='-'){
+				pinzhong[i] = '\0';
+				break;
 			}
 		}
+
+		//去掉空格
+
+		unsigned int spaceloc=strlen(pinzhong);
+		for (unsigned int  i= 0; i < strlen(pinzhong); i++){
+			char c = *(pinzhong + i);
+			if (!((c>='a'&&c<='z') || (c>='A'&&c<='Z') )){
+				spaceloc = i;
+			}
+		}
+		char temp[50];
+		if (spaceloc < strlen(pinzhong)){
+			//有空格去掉空格前的字符
+			strcpy(temp, pinzhong+spaceloc+1);
+			strcpy(pinzhong, temp);
+			//cout << " 本品种去空格：" << pinzhong <<  "  "<<this_data.InstrumentID<< endl;
+		}
+
+		//cout << " ****************本品种 ：" <<this_data.InstrumentID<< endl;
+
+		it = map_ins_status.find(pinzhong);
+        if (it != map_ins_status.end()){
+			pthread_mutex_lock( &((it->second).lock) );
+			status = (it->second).status;
+			//cout << this_data.InstrumentID <<  "  status :"<< status << endl;
+			pthread_mutex_unlock( &((it->second).lock) );
+			if (status!='2'){
+				//非交易
+				if (! (strcmp(thismdtime,"10:14")==0 || strcmp(thismdtime,"11:29")==0 || strcmp(thismdtime,"14:59")==0 \
+						|| strcmp(thismdtime,"22:59")==0 || strcmp(thismdtime,"23:29")==0 || strcmp(thismdtime,"00:59")==0\
+						|| strcmp(thismdtime,"02:29")==0) ){
+					continue;
+				}
+			}
+        }else{
+        	//cout << this_data.InstrumentID << "在状态map中未找到 默认未开盘" << endl;
+        	continue;
+        }
 
 
 		// 早上8点到9点之间的k线过滤

@@ -127,11 +127,18 @@ void TdHandler :: OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CTh
 
 ///合约交易状态通知
 void TdHandler :: OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField *pInstrumentStatus){
+    //cout << pInstrumentStatus->InstrumentID<< "  "<< pInstrumentStatus->InstrumentStatus<< "   **********************************************************" << endl;
 	map<string,instrument_status>::iterator it = map_ins_status.find(pInstrumentStatus->InstrumentID);
-
-	pthread_mutex_lock( &((it->second).lock) );
-	(it->second).status = pInstrumentStatus->InstrumentStatus;
-	pthread_mutex_unlock( &((it->second).lock) );
+    if (it != map_ins_status.end()){
+		pthread_mutex_lock( &((it->second).lock) );
+		(it->second).status = pInstrumentStatus->InstrumentStatus;
+		pthread_mutex_unlock( &((it->second).lock) );
+    }else{
+    	instrument_status temp;
+		temp.status = pInstrumentStatus->InstrumentStatus;
+		temp.lock = PTHREAD_MUTEX_INITIALIZER;
+		map_ins_status.insert(pair<string, instrument_status>(pInstrumentStatus->InstrumentID, temp));
+    }
 }
 
 
