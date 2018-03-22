@@ -320,7 +320,7 @@ void* MdHandler :: calcu_k_func(void *arg){
 			(it->second).back().TotalVolume = this_data.Volume;
 
 
-		}/*else if(strcmp(thistime, tempthistime) > 0){
+		}/*else if(strcmp(thistime, revmdtime) > 0){
 
 			//收到的行情时间小于当前时间，表明本笔行情延迟了,并且假设延迟不超过一分钟，即延迟收到的行情是上一分钟的行情。
 			cout << this_data.UpdateTime << "  " << this_data.InstrumentID << " 行情延迟" << endl;
@@ -567,7 +567,7 @@ void* MdHandler :: write_k2mongo(void *arg){
 		if (strcmp(thismdtime,"21:00")<0 && strcmp(thismdtime,"20:00")>0)
 			continue;
 		// 下午15点到16点之间的k线过滤
-		if (strcmp(thismdtime,"15:00")>=0 && strcmp(thismdtime,"16:00")<0)
+		if (strcmp(thismdtime,"15:15")>=0 && strcmp(thismdtime,"16:00")<0)
 			continue;
 		// 中午11：30到13点之间的k线过滤
 		if (strcmp(thismdtime,"11:30")>=0 && strcmp(thismdtime,"13:00")< 0 )
