@@ -23,7 +23,8 @@ char LOGINHOUR[3];
 char LOGINMINUTE[3];
 
 //每个合约的状态map
-map<string, instrument_status> map_ins_status;
+map<string, char> map_ins_status;
+pthread_mutex_t STATUS_LOCK = PTHREAD_MUTEX_INITIALIZER;
 
 //全局变量，所有订阅合约列表
 vector<string> ALL_CODE;
@@ -77,7 +78,6 @@ int main() {
 	//初始化信号量 通知写tick数据线程 tick行情队列有可用数据
 	sem_init(&Md_Queue_Write, 0, 0);
 
-
 	//读取期货账户配置信息
     ACC_SETTING = Get_Account_Setting();
 
@@ -85,12 +85,16 @@ int main() {
     INSTRUMENT_SETTING = Get_Instrument_Setting();
 
     // 获取需要订阅的合约，交易线程可能会再次启动，查询全市场合约
-    ALL_CODE = Get_All_SubInstrument_Code(INSTRUMENT_SETTING);
+    //ALL_CODE = Get_All_SubInstrument_Code(INSTRUMENT_SETTING);
+    // 不用Get_All_SubInstrument_Code了，改用以下交易接口线程
 
-    /*//临时打印
-    for (vector<string>::iterator ite = ALL_CODE.begin(); ite < ALL_CODE.end(); ite++ )
-    	cout << *ite << endl;*/
+    pthread_t threadTdID;
+    //启动交易接口线程
+    pthread_create(&threadTdID, NULL, tdstartfun, &(INSTRUMENT_SETTING));
 
+	// 等待全市场合约查询返回
+	sem_wait(&Md_Thread);
+	cout << "全市场共  " << ALL_CODE.size() << " 个合约" << endl;
     // 创建行情接收实例，程序开始工作。
     start_rev_md(ALL_CODE, INSTRUMENT_SETTING.instance_num, db);
 
@@ -129,6 +133,67 @@ void *mdstartfun(void *arg){
 	return NULL ;
 }
 
+//交易接口线程
+void *tdstartfun(void *arg){
+	instrument_setting *arg1 = (instrument_setting*)arg;
+	vector<string> result;
+
+	//创建交易接口类指针
+	p_tdreq = CThostFtdcTraderApi::CreateFtdcTraderApi("./td/");
+
+	//创建交易Spi回调类。
+	TdHandler shtrader(p_tdreq);
+
+	//注册Spi回调类实例
+	p_tdreq->RegisterSpi(&shtrader);
+
+	//订阅各种流
+	p_tdreq->SubscribePrivateTopic(THOST_TERT_RESUME);
+	p_tdreq->SubscribePublicTopic(THOST_TERT_RESTART);
+
+	//注册交易前置地址
+	for ( vector<string>::size_type i = 0; i<ACC_SETTING.traderaddress.size(); i++ ){
+		char *p = const_cast<char*>(ACC_SETTING.traderaddress[i].c_str());
+		p_tdreq->RegisterFront(p);
+	}
+
+
+	//启动交易接口线程
+	p_tdreq->Init();
+
+	sem_wait(&Md_Thread);
+	if(arg1->instrument[0]=="" && arg1->instrument.size()==1){
+		// 配置文件没有指定具体订阅哪些具体合约
+
+		//如果配置文件指定了具体品种，则筛选出指定品种的全部合约
+		if(arg1->commodity[0]!=""){
+			//配置文件指定了具体品种
+			regex re("^[a-zA-Z]{0,3}");
+			smatch sm;
+			vector <string> temp_all_subcode;
+			for(vector<string>::size_type i = 0; i<ALL_CODE.size(); i++){
+				// 存放string结果的容器
+				bool b = regex_search(ALL_CODE[i], sm, re);
+				if(b){
+					vector<string>::iterator ite = find( arg1->commodity.begin(), arg1->commodity.end(), sm[0] );
+					if ( ite != arg1->commodity.end() ){
+						temp_all_subcode.push_back(ALL_CODE[i]);
+					}
+				}
+			}
+			ALL_CODE =  temp_all_subcode;
+		}
+
+	}else{
+		// 配置文件指定了具体订阅合约代码
+		result = arg1->instrument;
+		ALL_CODE =  result;
+	}
+	cout << "一共需订阅  " << ALL_CODE.size() << " 个合约" << endl;
+	//永不退出。
+	p_tdreq->Join();
+	return NULL ;
+}
 
 // 启动行情接收,运行在主线程
 void start_rev_md(vector<string> code_list, int instance_num, mongocxx::database db){
@@ -239,8 +304,6 @@ vector<string> Get_All_SubInstrument_Code(instrument_setting arg){
 	}
 
 
-
-
 	//启动交易接口线程
 	p_tdreq->Init();
 
@@ -251,19 +314,7 @@ vector<string> Get_All_SubInstrument_Code(instrument_setting arg){
 	//p_tdreq->Release();
 	//p_tdreq = NULL;
 	//p_tdreq->Join();
-	// 初始化map_ins_status 盘中登录不会收到交易所的状态通知，如果盘中登录，则手动初始化map_ins_status
-	/*
-	int loginhour = atoi(LOGINHOUR);
-	if ( (loginhour >= 9 && loginhour <15) || (loginhour >= 21 || loginhour <=3) ){
-		//开盘钱正常登录
-		for(vector<string>::size_type i = 0; i<ALL_CODE.size(); i++){
-			instrument_status temp;
-			temp.status = '2';
-			temp.lock = PTHREAD_MUTEX_INITIALIZER;
-			map_ins_status.insert(pair<string, instrument_status>(ALL_CODE[i], temp));
-		}
-    }
-	*/
+
 	cout << "全市场共  " << ALL_CODE.size() << " 个合约" << endl;
 
     if(arg.instrument[0]=="" && arg.instrument.size()==1){

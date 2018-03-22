@@ -20,7 +20,8 @@ extern char LOGINHOUR[3];
 extern char LOGINMINUTE[3];
 
 extern sem_t Md_Queue_Write;
-extern map<string, instrument_status> map_ins_status;
+extern map<string, char> map_ins_status;
+extern pthread_mutex_t STATUS_LOCK;
 
 class MdHandler: public CThostFtdcMdSpi{
 

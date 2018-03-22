@@ -238,17 +238,15 @@ typedef struct md_thread_arg{
 
 }md_thread_arg;
 
-//合约状态结构
-typedef struct instrument_status{
-	pthread_mutex_t lock;
-	char status;
-}instrument_status;
 
 //写k线到mongo
 void *write_k2mongo(void *arg);
 
 //行情接收线程
 void *mdstartfun(void* arg);
+
+//交易接口线程
+void *tdstartfun(void *argtmp);
 
 //启动行情接收
 void start_rev_md(vector<string> code, int num, mongocxx::database db);

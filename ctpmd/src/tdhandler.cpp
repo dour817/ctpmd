@@ -118,7 +118,8 @@ void TdHandler :: OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CTh
 	if (bIsLast){
 		// 全市场合约查询完成，通知行情线程开始订阅
 		sem_post(&Md_Thread);
-	    m_pTraderApi->RegisterSpi(NULL);
+		sem_post(&Md_Thread);
+	    //m_pTraderApi->RegisterSpi(NULL);
 		//m_pTraderApi->Release();
 		//m_pTraderApi = NULL;
 		//pthread_exit((void *)("交易接口线程退出"));
@@ -128,17 +129,16 @@ void TdHandler :: OnRspQryInstrument(CThostFtdcInstrumentField *pInstrument, CTh
 ///合约交易状态通知
 void TdHandler :: OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField *pInstrumentStatus){
     //cout << pInstrumentStatus->InstrumentID<< "  "<< pInstrumentStatus->InstrumentStatus<< "   **********************************************************" << endl;
-	map<string,instrument_status>::iterator it = map_ins_status.find(pInstrumentStatus->InstrumentID);
+	pthread_mutex_lock( &STATUS_LOCK);
+	map<string,char>::iterator it = map_ins_status.find(pInstrumentStatus->InstrumentID);
     if (it != map_ins_status.end()){
-		pthread_mutex_lock( &((it->second).lock) );
-		(it->second).status = pInstrumentStatus->InstrumentStatus;
-		pthread_mutex_unlock( &((it->second).lock) );
+		//cout << pInstrumentStatus->EnterTime << "  "<< pInstrumentStatus->InstrumentID << " 状态由" << (it->second) << " 变为 "\
+			//	<<pInstrumentStatus->InstrumentStatus << endl;
+		(it->second) = pInstrumentStatus->InstrumentStatus;;
     }else{
-    	instrument_status temp;
-		temp.status = pInstrumentStatus->InstrumentStatus;
-		temp.lock = PTHREAD_MUTEX_INITIALIZER;
-		map_ins_status.insert(pair<string, instrument_status>(pInstrumentStatus->InstrumentID, temp));
+		map_ins_status.insert(pair<string, char>(pInstrumentStatus->InstrumentID, pInstrumentStatus->InstrumentStatus));
     }
+    pthread_mutex_unlock( &STATUS_LOCK );
 }
 
 

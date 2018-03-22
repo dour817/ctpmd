@@ -139,7 +139,7 @@ void MdHandler :: OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMar
 	//粗略过滤。
     //白天8点到19点之间登录，却收到 16点以后，或者 凌晨1点和2点的行情
 	if (atoi(LOGINHOUR)>=8 && atoi(LOGINHOUR) < 20 && (ihour> 15||ihour<=2)){
-		cout << pDepthMarketData->UpdateTime <<  " 日盘收到夜盘时间行情，过滤" << endl;
+		//cout << pDepthMarketData->UpdateTime <<  " 日盘收到夜盘时间行情，过滤" << endl;
 		return;
 	}
 	//minute = atoi(strncpy(temp2char, this_data.UpdateTime+3, 2));
@@ -147,7 +147,7 @@ void MdHandler :: OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMar
 	//16点-20点，或 凌晨3点-早上8点 或 中午11点半到12点的数据
 	// 3 4 5 6 7 12 16 17 18 19 11：30 的行情数据过滤
 	if ( (ihour >15 && ihour < 20) || (ihour<8 && ihour>=3) || (ihour==11 && iminute>30) || ihour == 12 ){
-		cout << pDepthMarketData->UpdateTime <<  " 非交易时间行情，过滤" << endl;
+		//cout << pDepthMarketData->UpdateTime <<  " 非交易时间行情，过滤" << endl;
 		return;
 	}
 
@@ -466,7 +466,7 @@ void* MdHandler :: write_k2mongo(void *arg){
    	mongocxx::collection coll;
    	char thismdtime[6] = {'\0'};
 
-   	map<string,instrument_status>::iterator it;
+   	map<string,char>::iterator it;
 
    	char status;
    	tm tm_time;
@@ -486,7 +486,6 @@ void* MdHandler :: write_k2mongo(void *arg){
 
 		//品种代码
 		//去掉数字
-
 
 		char pinzhong[50]={'\0'};
 		strcpy(pinzhong, this_data.InstrumentID);
@@ -516,23 +515,26 @@ void* MdHandler :: write_k2mongo(void *arg){
 		}
 
 		//cout << " ****************本品种 ：" <<this_data.InstrumentID<< endl;
-
+		pthread_mutex_lock( &STATUS_LOCK);
 		it = map_ins_status.find(pinzhong);
         if (it != map_ins_status.end()){
-			pthread_mutex_lock( &((it->second).lock) );
-			status = (it->second).status;
+			status = it->second;
 			//cout << this_data.InstrumentID <<  "  status :"<< status << endl;
-			pthread_mutex_unlock( &((it->second).lock) );
+			pthread_mutex_unlock( &STATUS_LOCK );
 			if (status!='2'){
+				//cout << this_data.InstrumentID << "在状态map中 找到 " << status << endl;
 				//非交易
 				if (! (strcmp(thismdtime,"10:14")==0 || strcmp(thismdtime,"11:29")==0 || strcmp(thismdtime,"14:59")==0 \
 						|| strcmp(thismdtime,"22:59")==0 || strcmp(thismdtime,"23:29")==0 || strcmp(thismdtime,"00:59")==0\
 						|| strcmp(thismdtime,"02:29")==0) ){
 					continue;
 				}
+			}else{
+
 			}
         }else{
-        	//cout << this_data.InstrumentID << "在状态map中未找到 默认未开盘" << endl;
+        	pthread_mutex_unlock( &STATUS_LOCK );
+        	//cout << this_data.InstrumentID << "在状态map中未找到。。。 "  << endl;
         	continue;
         }
 

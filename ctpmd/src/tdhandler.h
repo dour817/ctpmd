@@ -18,7 +18,8 @@ extern account_setting ACC_SETTING;
 extern char DATETIME[30];
 extern char LOGINHOUR[3];
 extern char LOGINMINUTE[3];
-extern map<string, instrument_status> map_ins_status;
+extern map<string, char> map_ins_status;
+extern pthread_mutex_t STATUS_LOCK;
 
 using namespace std;
 
