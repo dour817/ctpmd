@@ -132,8 +132,8 @@ void TdHandler :: OnRtnInstrumentStatus(CThostFtdcInstrumentStatusField *pInstru
 	pthread_mutex_lock( &STATUS_LOCK);
 	map<string,char>::iterator it = map_ins_status.find(pInstrumentStatus->InstrumentID);
     if (it != map_ins_status.end()){
-		//cout << pInstrumentStatus->EnterTime << "  "<< pInstrumentStatus->InstrumentID << " 状态由" << (it->second) << " 变为 "\
-			//	<<pInstrumentStatus->InstrumentStatus << endl;
+		cout << pInstrumentStatus->EnterTime << "  "<< pInstrumentStatus->InstrumentID << " 状态由" << (it->second) << " 变为 "\
+			<<pInstrumentStatus->InstrumentStatus << endl;
 		(it->second) = pInstrumentStatus->InstrumentStatus;;
     }else{
 		map_ins_status.insert(pair<string, char>(pInstrumentStatus->InstrumentID, pInstrumentStatus->InstrumentStatus));

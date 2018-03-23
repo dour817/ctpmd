@@ -487,11 +487,21 @@ void* MdHandler :: write_k2mongo(void *arg){
    	mongocxx::collection coll;
    	char thismdtime[6] = {'\0'};
 
+   	//合约状态map 指针
    	map<string,char>::iterator it;
+
+	//记录本合约本次k线时间的map结构的 指针
+   	map<string,string>::iterator itit;
 
    	char status;
    	tm tm_time;
    	time_t timep;
+
+   	// 记录每一个合约最近本次写入的k线的时间
+   	map<string,string> maplastktime;
+    for (vector<string>::size_type i=0; i < thisp->subcode.size(); i++){
+    	maplastktime.insert( pair< string,string >((thisp->subcode)[i], "99:99") );
+    }
 
    	//等待品种交易状态推送完毕。
     sleep(2);
@@ -548,10 +558,12 @@ void* MdHandler :: write_k2mongo(void *arg){
 				if (! (strcmp(thismdtime,"10:14")==0 || strcmp(thismdtime,"11:29")==0 || strcmp(thismdtime,"14:59")==0 \
 						|| strcmp(thismdtime,"22:59")==0 || strcmp(thismdtime,"23:29")==0 || strcmp(thismdtime,"00:59")==0\
 						|| strcmp(thismdtime,"02:29")==0) ){
+					// 上午修盘，或者夜盘收盘的最后一分钟 ，有可能在收到合约状态为“收盘”的信号后，最后一分钟的k线还没写入。
+					// 所以最后一分钟的关键节点的k线需要写入，其他分钟的k线则过滤
+					// 但次数有个问题。比如rb 23:00收盘后，随后23:29 00:59 02:29 的关键节点k线都会写入。
+					// 所以还要在本个if else 结构后面 再加一层判断。
 					continue;
 				}
-			}else{
-
 			}
         }else{
         	pthread_mutex_unlock( &STATUS_LOCK );
@@ -559,6 +571,18 @@ void* MdHandler :: write_k2mongo(void *arg){
         	continue;
         }
 
+        if (status!='2'){
+        	// 判断在已经收盘的前提下，最后一个关键节点的k线数据是否已经写入，如果已经写入，则continue过滤
+        	// 通过maplastktime 找到本品种上一次写入的分钟数
+        	map<string,string>::iterator tempit  = maplastktime.find(this_data.InstrumentID);
+            string lastktime;
+        	if (tempit != maplastktime.end()){
+        		lastktime = tempit->second;
+        	}
+        	if (strcmp(lastktime.c_str(),"22:59")==0 || strcmp(lastktime.c_str(),"23:29")==0 || strcmp(lastktime.c_str(),"00:59")==0\
+        							|| strcmp(lastktime.c_str(),"02:29")==0 )
+        		continue;
+        }
 
 		// 早上8点到9点之间的k线过滤
 		if (strcmp(thismdtime,"09:00")<0 && strcmp(thismdtime,"08:00")>0)
@@ -591,6 +615,12 @@ void* MdHandler :: write_k2mongo(void *arg){
 		doc.append(bsoncxx::builder::basic::kvp("vol", this_data.Volume));
 
 		coll.insert_one(doc.view());
+
+		//记录本合约本次写入的k线的时间分钟
+		itit = maplastktime.find(this_data.InstrumentID);
+		if (itit != maplastktime.end()){
+			itit->second = this_data.UpdateTime;
+		}
 
 		//临时打印
 		cout << "1分钟K线 " <<  this_data.UpdateTime << "   " << this_data.InstrumentID << "  "<< this_data.OpenPrice << \
