@@ -304,7 +304,6 @@ void* MdHandler :: calcu_k_func(void *arg){
 		}else if (strcmp(nowktime, revmdtime) == 0){
 			//分钟内
 
-
 		    //更新收盘价
 			it->second.back().ClosePrice = this_data.LastPrice;
 
@@ -514,10 +513,13 @@ void* MdHandler :: write_k2mongo(void *arg){
 
 		(thisp->MARKET_K_QUEUE).pop(this_data);
 		strncpy(thismdtime, this_data.UpdateTime + 11, 5);
+		if (this_data.OpenPrice == -1){
+			continue;
+		}
+
 
 		//品种代码
 		//去掉数字
-
 		char pinzhong[50]={'\0'};
 		strcpy(pinzhong, this_data.InstrumentID);
 
@@ -583,6 +585,8 @@ void* MdHandler :: write_k2mongo(void *arg){
         							|| strcmp(lastktime.c_str(),"02:29")==0 )
         		continue;
         }
+
+
 
 		// 早上8点到9点之间的k线过滤
 		if (strcmp(thismdtime,"09:00")<0 && strcmp(thismdtime,"08:00")>0)
