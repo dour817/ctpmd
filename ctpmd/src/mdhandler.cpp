@@ -275,6 +275,15 @@ void* MdHandler :: calcu_k_func(void *arg){
 
 				//bar时间 HH:SS
 				strncpy(((ite->second).back().UpdateTime)+11, lastktime, 5);
+				//bar时间 yyyy-mm-dd
+				strncpy((ite->second).back().UpdateTime, lastktime, 10);
+				strncpy((ite->second).back().UpdateTime, this_data.ActionDay, 4);
+				strncpy(((ite->second).back().UpdateTime)+5, (this_data.ActionDay+4), 2);
+				strncpy(((ite->second).back().UpdateTime)+8, (this_data.ActionDay+6), 2);
+				((ite->second).back().UpdateTime)[4] = '-';
+				((ite->second).back().UpdateTime)[7] = '-';
+				((ite->second).back().UpdateTime)[10] = ' ';
+
 				//成交量
 				(ite->second).back().Volume = (ite->second).back().TotalVolume - (ite->second).front().TotalVolume;
 				//推入待写bar队列
@@ -610,7 +619,7 @@ void* MdHandler :: write_k2mongo(void *arg){
 		//记录本合约本次写入的k线的时间分钟
 		itit = maplastktime.find(this_data.InstrumentID);
 		if (itit != maplastktime.end()){
-			itit->second = this_data.UpdateTime;
+			itit->second = thismdtime;
 		}
 
 		//临时打印
