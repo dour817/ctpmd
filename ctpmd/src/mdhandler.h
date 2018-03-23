@@ -14,12 +14,14 @@ using namespace std;
 extern account_setting ACC_SETTING;
 extern mongodb_setting MONGODB_SETTING;
 extern boost::lockfree::queue< market_data*, boost::lockfree::fixed_sized<false> > MARKET_QUEQUE;
-extern boost::lockfree::queue< bar, boost::lockfree::fixed_sized<false> > MARKET_K_QUEUE;
+//extern boost::lockfree::queue< bar, boost::lockfree::fixed_sized<false> > MARKET_K_QUEUE;
+extern boost::lockfree::queue< md_daily*, boost::lockfree::fixed_sized<false> > CLOSE_MARKET_QUEQUE;
 extern char DATETIME[30];
 extern char LOGINHOUR[3];
 extern char LOGINMINUTE[3];
 
 extern sem_t Md_Queue_Write;
+extern sem_t Md_Queue_Write_Daily;
 extern map<string, char> map_ins_status;
 extern pthread_mutex_t STATUS_LOCK;
 

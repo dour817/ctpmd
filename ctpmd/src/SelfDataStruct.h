@@ -238,12 +238,32 @@ typedef struct md_thread_arg{
 
 }md_thread_arg;
 
+//日行情
+typedef struct md_daily{
+	string instrument;
+	string date;     // yyyy-mm-dd
+	double open;
+	double high;
+	double low;
+	double close;
+	double settlement;   //结算价
+	double vol;          //成交量
+	double oi;           //持仓量
+
+	double pre_close;     //前收
+	double pre_settlement; //前结
+	double pre_oi;         //前持仓
+}md_daily;
+
 
 //写k线到mongo
 void *write_k2mongo(void *arg);
 
 //行情接收线程
 void *mdstartfun(void* arg);
+
+//写日行情县城
+void *mddailyfun(void *arg);
 
 //交易接口线程
 void *tdstartfun(void *argtmp);
@@ -253,7 +273,6 @@ void start_rev_md(vector<string> code, int num, mongocxx::database db);
 
 //计算所有需要订阅的合约
 vector<string> Get_All_SubInstrument_Code(instrument_setting arg);
-
 
 // 获取期货账户配置信息
 account_setting Get_Account_Setting();

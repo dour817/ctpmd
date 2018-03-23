@@ -34,7 +34,10 @@ CThostFtdcReqUserLoginField REQ_USER_LOGIN;
 
 //全市场合约查询完成后，通知行情线程开始订阅
 sem_t Md_Thread;
+//通知 tick行情写线程
 sem_t Md_Queue_Write;
+//通知 日行情行情写线程
+sem_t Md_Queue_Write_Daily;
 
 
 // 行情接口实例列表
@@ -49,14 +52,14 @@ vector<string> FIELDS{"TradingDay","InstrumentID","LastPrice","PreSettlementPric
 	                 "OpenPrice","HighestPrice","LowestPrice","Volume","Turnover","OpenInterest","UpperLimitPrice","LowerLimitPrice",\
 					 "UpdateTime","UpdateMillisec","BidPrice1","BidVolume1","AskPrice1","AskVolume1","ActionDay"};
 
-// 行情队列，接收tick写入mongo勇
+// 行情队列，接收tick写入mongo用
 boost::lockfree::queue< market_data*, boost::lockfree::fixed_sized<false> > MARKET_QUEQUE(12800);
 
 // 行情bar队列，队列bar依次写入mongo
-boost::lockfree::queue< bar, boost::lockfree::fixed_sized<false> > MARKET_K_QUEUE(12800);
+//boost::lockfree::queue< bar, boost::lockfree::fixed_sized<false> > MARKET_K_QUEUE(12800);
 
 // 日收盘行情队列，收盘后才用到
-boost::lockfree::queue< market_data, boost::lockfree::fixed_sized<false> > CLOSE_MARKET_QUEQUE(12800);
+boost::lockfree::queue< md_daily*, boost::lockfree::fixed_sized<false>  >  CLOSE_MARKET_QUEQUE(12800);
 
 int main() {
 	//读取mongo配置
@@ -78,6 +81,9 @@ int main() {
 	//初始化信号量 通知写tick数据线程 tick行情队列有可用数据
 	sem_init(&Md_Queue_Write, 0, 0);
 
+	//初始化信号量 通知写日行情数据线程 日行情队列有可用数据
+	sem_init(&Md_Queue_Write_Daily, 0, 0);
+
 	//读取期货账户配置信息
     ACC_SETTING = Get_Account_Setting();
 
@@ -91,6 +97,10 @@ int main() {
     pthread_t threadTdID;
     //启动交易接口线程
     pthread_create(&threadTdID, NULL, tdstartfun, &(INSTRUMENT_SETTING));
+
+    pthread_t threadTdID_daily;
+    //启动日行情写线程
+    pthread_create(&threadTdID_daily, NULL, mddailyfun, &(INSTRUMENT_SETTING));
 
 	// 等待全市场合约查询返回
 	sem_wait(&Md_Thread);
@@ -133,6 +143,69 @@ void *mdstartfun(void *arg){
 	return NULL ;
 }
 
+// 日行情写线程
+void *mddailyfun(void *arg){
+	string uristring = "mongodb://";
+	if (!MONGODB_SETTING.username.empty())
+		uristring = uristring + MONGODB_SETTING.username + ":" + MONGODB_SETTING.password + "@";
+	uristring = uristring + MONGODB_SETTING.host + ":" + MONGODB_SETTING.port;
+
+	mongocxx::uri uri(uristring.c_str());
+	mongocxx::client client(uri);
+	//mongocxx::client client{mongocxx::uri{}};
+	mongocxx::database db = client[MONGODB_SETTING.db.c_str()];
+	mongocxx::collection coll;
+
+	coll = db["future_daily"];
+
+	md_daily *p_this_data;
+
+	tm tm_time;
+	time_t timep;
+	while (true){
+		sem_wait(&Md_Queue_Write_Daily);
+
+		CLOSE_MARKET_QUEQUE.pop(p_this_data);
+		md_daily this_data = *p_this_data;
+		delete (md_daily*)p_this_data;
+		p_this_data = NULL;
+
+		strptime(this_data.date.c_str(), "%Y%m%d", &tm_time);
+		timep = mktime(&tm_time);
+
+
+		auto doc = bsoncxx::builder::basic::document{};
+
+		doc.append(bsoncxx::builder::basic::kvp("timestamp", timep));
+		doc.append(bsoncxx::builder::basic::kvp("symbol", this_data.instrument));
+		doc.append(bsoncxx::builder::basic::kvp("date", this_data.date));
+		doc.append(bsoncxx::builder::basic::kvp("open", this_data.open));
+		doc.append(bsoncxx::builder::basic::kvp("high", this_data.high));
+		doc.append(bsoncxx::builder::basic::kvp("low", this_data.low));
+		doc.append(bsoncxx::builder::basic::kvp("close", this_data.close));
+		doc.append(bsoncxx::builder::basic::kvp("settlement", this_data.settlement));
+		doc.append(bsoncxx::builder::basic::kvp("vol", this_data.vol));
+		doc.append(bsoncxx::builder::basic::kvp("oi", this_data.oi));
+
+		doc.append(bsoncxx::builder::basic::kvp("pre_settlement", this_data.settlement));
+		doc.append(bsoncxx::builder::basic::kvp("pre_oi", this_data.pre_oi));
+		doc.append(bsoncxx::builder::basic::kvp("pre_close", this_data.pre_close));
+
+		auto olddoc = bsoncxx::builder::basic::document{};
+		olddoc.append(bsoncxx::builder::basic::kvp("symbol", this_data.instrument));
+		olddoc.append(bsoncxx::builder::basic::kvp("date", this_data.date));
+
+		auto tempdoc = bsoncxx::builder::basic::document{};
+		tempdoc.append(bsoncxx::builder::basic::kvp("$set", doc.view()));
+
+		auto para = mongocxx::v_noabi::options::update{};
+		para.upsert(true);
+
+		coll.update_one(olddoc.view(), tempdoc.view(), para);
+	}
+
+
+}
 //交易接口线程
 void *tdstartfun(void *arg){
 	instrument_setting *arg1 = (instrument_setting*)arg;

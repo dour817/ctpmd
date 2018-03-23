@@ -106,36 +106,27 @@ void MdHandler :: OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMar
 	iminute = atoi(strncpy(cminute, pDepthMarketData->UpdateTime+3, 2));
 
 	// 存日行情数据
-	/*
-	if (IHOUR == 15 && pDepthMarketData->SettlementPrice > 0 && pDepthMarketData->SettlementPrice <9999999){
-		market_data *p_this_data = new market_data;
-		strcpy(p_this_data->TradingDay, pDepthMarketData->TradingDay);
-		strcpy(p_this_data->InstrumentID, pDepthMarketData->InstrumentID);
-		p_this_data->LastPrice = pDepthMarketData->LastPrice;
-		p_this_data->PreSettlementPrice = pDepthMarketData->PreSettlementPrice;
-		p_this_data->PreClosePrice = pDepthMarketData->PreClosePrice;
-		p_this_data->PreOpenInterest = pDepthMarketData->PreOpenInterest;
-		p_this_data->OpenPrice = pDepthMarketData->OpenPrice;
-		p_this_data->HighestPrice = pDepthMarketData->HighestPrice;
-		p_this_data->LowestPrice = pDepthMarketData->LowestPrice;
-		p_this_data->Volume = pDepthMarketData->Volume;
-		p_this_data->Turnover = pDepthMarketData->Turnover;
-		p_this_data->OpenInterest = pDepthMarketData->OpenInterest;
-		p_this_data->UpperLimitPrice = pDepthMarketData->UpperLimitPrice;
-		p_this_data->LowerLimitPrice = pDepthMarketData->LowerLimitPrice;
-		strcpy(p_this_data->UpdateTime, pDepthMarketData->UpdateTime);
-		p_this_data->UpdateMillisec = pDepthMarketData->UpdateMillisec;
-		p_this_data->BidPrice1 = pDepthMarketData->BidPrice1;
-		p_this_data->BidVolume1 = pDepthMarketData->BidVolume1;
-		p_this_data->AskPrice1 = pDepthMarketData->AskPrice1;
-		p_this_data->AskVolume1 = pDepthMarketData->AskVolume1;
-		strcpy(p_this_data->ActionDay, pDepthMarketData->ActionDay);
+	//if (pDepthMarketData->SettlementPrice > 0 && pDepthMarketData->SettlementPrice <9999999){
+	if ((ihour == 15 || iminute == 16)&& pDepthMarketData->SettlementPrice > 0 && pDepthMarketData->SettlementPrice <9999999){
+		md_daily *p_this_data = new md_daily;
+		p_this_data->instrument = pDepthMarketData->InstrumentID;
+		p_this_data->date = pDepthMarketData->TradingDay;
+		p_this_data->open = pDepthMarketData->OpenPrice;
+		p_this_data->high = pDepthMarketData->HighestPrice;
+		p_this_data->low = pDepthMarketData->LowestPrice;
+		p_this_data->close = pDepthMarketData->ClosePrice;
+		p_this_data->settlement = pDepthMarketData->SettlementPrice;
+		p_this_data->vol = pDepthMarketData->Volume;
+		p_this_data->oi = pDepthMarketData->OpenInterest;
+		p_this_data->pre_settlement = pDepthMarketData->PreSettlementPrice;
+	    p_this_data->pre_close = pDepthMarketData->PreClosePrice;
+		p_this_data->pre_oi = pDepthMarketData->PreOpenInterest;
 
-		//推入写tick队列
-		MARKET_QUEQUE.push(p_this_data);
-		sem_post(&Md_Queue_Write);
+		//推入写日行情队列
+		CLOSE_MARKET_QUEQUE.push(p_this_data);
+		sem_post(&Md_Queue_Write_Daily);
 	}
-*/
+
 	//粗略过滤。
     //白天8点到19点之间登录，却收到 16点以后，或者 凌晨1点和2点的行情
 	if (atoi(LOGINHOUR)>=8 && atoi(LOGINHOUR) < 20 && (ihour> 15||ihour<=2)){
@@ -296,7 +287,7 @@ void* MdHandler :: calcu_k_func(void *arg){
 				ite->second.back().HighPrice = ite->second.back().ClosePrice;
 				ite->second.back().LowPrice = ite->second.back().ClosePrice;
 				ite->second.back().Volume = 0;
-				ite->second.back().TotalVolume = 0;
+				//ite->second.back().TotalVolume = 0;
 
 				sem_post(&(thisp->Md_Queue_K));
 			}
