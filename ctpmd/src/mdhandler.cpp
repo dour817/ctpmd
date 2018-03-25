@@ -107,7 +107,7 @@ void MdHandler :: OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMar
 
 	// 存日行情数据
 	//if (pDepthMarketData->SettlementPrice > 0 && pDepthMarketData->SettlementPrice <9999999){
-	if ((ihour == 15 || iminute == 16)&& pDepthMarketData->SettlementPrice > 0 && pDepthMarketData->SettlementPrice <9999999){
+	if ((ihour == 15 || ihour == 16)&& pDepthMarketData->SettlementPrice > 0 && pDepthMarketData->SettlementPrice <9999999){
 		md_daily *p_this_data = new md_daily;
 		p_this_data->instrument = pDepthMarketData->InstrumentID;
 		p_this_data->date = pDepthMarketData->TradingDay;
