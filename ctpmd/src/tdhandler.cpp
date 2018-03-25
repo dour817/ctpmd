@@ -44,6 +44,8 @@ void TdHandler :: OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin, CTh
         DATETIME[10] = ' ';
         strcat(DATETIME, pRspUserLogin->LoginTime);
 
+        //cout << "DATETIME :" << DATETIME << endl;
+
         strncpy(LOGINHOUR, DATETIME+11 ,2);
         strncpy(LOGINMINUTE, DATETIME+14 ,2);
         LOGINHOUR[2] = '\0';

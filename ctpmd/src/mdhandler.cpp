@@ -226,11 +226,15 @@ void* MdHandler :: calcu_k_func(void *arg){
     //当前k线时间
     char nowktime[6] = {'\0'};
     strncpy(nowktime, DATETIME+11, 5);
+    //cout << "nowktime:"<< nowktime << endl;
 
     //本次收到的tick行情时间(分钟)
     char revmdtime[6] = {'\0'};
 
     int loginhour;
+
+    time_t now ;
+    struct tm *tm_now ;
 	while(true){
 
 		//等待行情数据推过来
@@ -246,7 +250,7 @@ void* MdHandler :: calcu_k_func(void *arg){
 		it=bars.find(this_data.InstrumentID);
 		//处理盘中启动时 第一跟bar开盘价为0的bug
 		loginhour = atoi(LOGINHOUR);
-		if ((it->second).front().OpenPrice == -1 && ((loginhour >=9 && loginhour<15) || (loginhour >=21 && loginhour<3)) ){
+		if ((it->second).front().OpenPrice == -1 && ((loginhour >=9 && loginhour<15) || (loginhour >=21 || loginhour<3)) ){
 			//程序启动后本合约第一笔数据
 			(it->second).back().OpenPrice = this_data.LastPrice;
 			(it->second).back().HighPrice = this_data.LastPrice;
@@ -263,26 +267,17 @@ void* MdHandler :: calcu_k_func(void *arg){
 
 
 		strncpy(revmdtime, this_data.UpdateTime, 5);
-
-		if (strcmp(nowktime, revmdtime) <0 || (strcmp(nowktime, "23:58")>=0 && strcmp(revmdtime, "00:01")<=0)){
+		//cout <<"DATETIME:" << DATETIME << "  nowktime：" << nowktime << "  revmdtime:" << revmdtime << "*************************************"<< endl;
+		if ( (strcmp(nowktime, revmdtime) <0 || (strcmp(nowktime, "23:58")>=0 && strcmp(revmdtime, "00:01")<=0)) \
+				&& !(strcmp(nowktime,"03:00") < 0 && strcmp(revmdtime,"15:30") > 0)  ){
+			//收到的tick行情的分钟大于当前bar的分钟，表明新的一分钟开始。
 			//cout << "nowktime:"<<nowktime << " revmdtime:"<< revmdtime << endl;
 			//新的一分钟开始
 			strncpy(lastktime, nowktime, 5);
 			strncpy(nowktime, revmdtime, 5);
-
+			cout <<"-----------------------------------------------------------------------------------"<< endl;
 			//将所有bars内所有合约的bar循环写入mongo。
 			for (map< string,vector<bar> >::iterator ite = bars.begin(); ite!=bars.end();ite++){
-
-				//bar时间 HH:SS
-				strncpy(((ite->second).back().UpdateTime)+11, lastktime, 5);
-				//bar时间 yyyy-mm-dd
-				strncpy((ite->second).back().UpdateTime, lastktime, 10);
-				strncpy((ite->second).back().UpdateTime, this_data.ActionDay, 4);
-				strncpy(((ite->second).back().UpdateTime)+5, (this_data.ActionDay+4), 2);
-				strncpy(((ite->second).back().UpdateTime)+8, (this_data.ActionDay+6), 2);
-				((ite->second).back().UpdateTime)[4] = '-';
-				((ite->second).back().UpdateTime)[7] = '-';
-				((ite->second).back().UpdateTime)[10] = ' ';
 
 				//成交量
 				(ite->second).back().Volume = (ite->second).back().TotalVolume - (ite->second).front().TotalVolume;
@@ -291,12 +286,33 @@ void* MdHandler :: calcu_k_func(void *arg){
 
 				//当前bar前推赋值给上一个根bar
 				(ite->second).front() = (ite->second).back();
+
 				//重置当前bar
 				ite->second.back().OpenPrice = ite->second.back().ClosePrice;
 				ite->second.back().HighPrice = ite->second.back().ClosePrice;
 				ite->second.back().LowPrice = ite->second.back().ClosePrice;
 				ite->second.back().Volume = 0;
 				//ite->second.back().TotalVolume = 0;
+
+				//最新(当前)一根bar的时间 自然日+分钟
+				//bar时间 HH:SS
+				//strncpy(((ite->second).back().UpdateTime)+11, nowktime, 5);
+				//bar时间 yyyy-mm-dd
+				//strncpy((ite->second).back().UpdateTime, lastktime, 10);
+				//strncpy((ite->second).back().UpdateTime, this_data.ActionDay, 4);
+				//strncpy(((ite->second).back().UpdateTime)+5, (this_data.ActionDay+4), 2);
+				//strncpy(((ite->second).back().UpdateTime)+8, (this_data.ActionDay+6), 2);
+
+				// 郑州的夜盘 业务日期和交易日期相同 ，而其他三个交易所的业务日期是自然日，所以bar真实时间不能用ActionDay业务日期
+				// 需要从
+			    time(&now) ;
+				tm_now = localtime(&now) ;
+				sprintf(((ite->second).back().UpdateTime),"%04d-%02d-%02d %s", tm_now->tm_year+1900, tm_now->tm_mon+1, tm_now->tm_mday,\
+						nowktime);\
+
+				//((ite->second).back().UpdateTime)[4] = '-';
+				//((ite->second).back().UpdateTime)[7] = '-';
+				//((ite->second).back().UpdateTime)[10] = ' ';
 
 				sem_post(&(thisp->Md_Queue_K));
 			}
@@ -319,7 +335,7 @@ void* MdHandler :: calcu_k_func(void *arg){
 			(it->second).back().TotalVolume = this_data.Volume;
 
 
-		}/*else if(strcmp(thistime, revmdtime) > 0){
+		}/*else if(strcmp(nowktime, revmdtime) > 0){
 
 			//收到的行情时间小于当前时间，表明本笔行情延迟了,并且假设延迟不超过一分钟，即延迟收到的行情是上一分钟的行情。
 			cout << this_data.UpdateTime << "  " << this_data.InstrumentID << " 行情延迟" << endl;
@@ -503,7 +519,7 @@ void* MdHandler :: write_k2mongo(void *arg){
     }
 
    	//等待品种交易状态推送完毕。
-    sleep(2);
+    //sleep(2);
 
 	while(true){
 
@@ -513,10 +529,11 @@ void* MdHandler :: write_k2mongo(void *arg){
 
 		(thisp->MARKET_K_QUEUE).pop(this_data);
 		strncpy(thismdtime, this_data.UpdateTime + 11, 5);
-		if (this_data.OpenPrice == -1){
+
+		if (this_data.OpenPrice == -1 || this_data.HighPrice == -1 || this_data.LowPrice == -1\
+				|| this_data.ClosePrice == -1){
 			continue;
 		}
-
 
 		//品种代码
 		//去掉数字
@@ -570,6 +587,8 @@ void* MdHandler :: write_k2mongo(void *arg){
         }else{
         	pthread_mutex_unlock( &STATUS_LOCK );
         	//cout << this_data.InstrumentID << "在状态map中未找到。。。 "  << endl;
+
+        	//如果在状态表中 map_ins_status未找到，默认未开盘。过滤
         	continue;
         }
 
