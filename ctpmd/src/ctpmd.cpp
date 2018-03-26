@@ -324,7 +324,7 @@ void start_rev_md(vector<string> code_list, int instance_num, mongocxx::database
         doc.append(bsoncxx::builder::basic::kvp("TradingDay", this_data.TradingDay));
 		doc.append(bsoncxx::builder::basic::kvp("ActionDay", this_data.ActionDay));
         doc.append(bsoncxx::builder::basic::kvp("UpdateTime", this_data.UpdateTime));
-        doc.append(bsoncxx::builder::basic::kvp("UpdateMillisec", this_data.UpdateMillisec));
+        //doc.append(bsoncxx::builder::basic::kvp("UpdateMillisec", this_data.UpdateMillisec));
 
         doc.append(bsoncxx::builder::basic::kvp("LastPrice", this_data.LastPrice));
         doc.append(bsoncxx::builder::basic::kvp("BidPrice1", this_data.BidPrice1));
@@ -335,15 +335,15 @@ void start_rev_md(vector<string> code_list, int instance_num, mongocxx::database
         doc.append(bsoncxx::builder::basic::kvp("OpenInterest", this_data.OpenInterest));
         doc.append(bsoncxx::builder::basic::kvp("Turnover", this_data.Turnover));
 
-        doc.append(bsoncxx::builder::basic::kvp("OpenPrice", this_data.OpenPrice));
-        doc.append(bsoncxx::builder::basic::kvp("HighestPrice", this_data.HighestPrice));
-        doc.append(bsoncxx::builder::basic::kvp("LowestPrice", this_data.LowestPrice));
+        //doc.append(bsoncxx::builder::basic::kvp("OpenPrice", this_data.OpenPrice));
+        //doc.append(bsoncxx::builder::basic::kvp("HighestPrice", this_data.HighestPrice));
+        //doc.append(bsoncxx::builder::basic::kvp("LowestPrice", this_data.LowestPrice));
         doc.append(bsoncxx::builder::basic::kvp("UpperLimitPrice", this_data.UpperLimitPrice));
         doc.append(bsoncxx::builder::basic::kvp("LowerLimitPrice", this_data.LowerLimitPrice));
 
-        doc.append(bsoncxx::builder::basic::kvp("PreOpenInterest", this_data.PreOpenInterest));
-        doc.append(bsoncxx::builder::basic::kvp("PreSettlementPrice", this_data.PreSettlementPrice));
-        doc.append(bsoncxx::builder::basic::kvp("PreClosePrice", this_data.PreClosePrice));
+        //doc.append(bsoncxx::builder::basic::kvp("PreOpenInterest", this_data.PreOpenInterest));
+        //doc.append(bsoncxx::builder::basic::kvp("PreSettlementPrice", this_data.PreSettlementPrice));
+        //doc.append(bsoncxx::builder::basic::kvp("PreClosePrice", this_data.PreClosePrice));
 
         coll.insert_one(doc.view());
 	    //临时打印

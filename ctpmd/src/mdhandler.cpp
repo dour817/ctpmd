@@ -148,19 +148,19 @@ void MdHandler :: OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMar
 	strcpy(p_this_data->TradingDay, pDepthMarketData->TradingDay);
 	strcpy(p_this_data->InstrumentID, pDepthMarketData->InstrumentID);
 	p_this_data->LastPrice = pDepthMarketData->LastPrice;
-	p_this_data->PreSettlementPrice = pDepthMarketData->PreSettlementPrice;
-	p_this_data->PreClosePrice = pDepthMarketData->PreClosePrice;
-	p_this_data->PreOpenInterest = pDepthMarketData->PreOpenInterest;
-	p_this_data->OpenPrice = pDepthMarketData->OpenPrice;
-	p_this_data->HighestPrice = pDepthMarketData->HighestPrice;
-	p_this_data->LowestPrice = pDepthMarketData->LowestPrice;
+	//p_this_data->PreSettlementPrice = pDepthMarketData->PreSettlementPrice;
+	//p_this_data->PreClosePrice = pDepthMarketData->PreClosePrice;
+	//p_this_data->PreOpenInterest = pDepthMarketData->PreOpenInterest;
+	//p_this_data->OpenPrice = pDepthMarketData->OpenPrice;
+	//p_this_data->HighestPrice = pDepthMarketData->HighestPrice;
+	//p_this_data->LowestPrice = pDepthMarketData->LowestPrice;
 	p_this_data->Volume = pDepthMarketData->Volume;
 	p_this_data->Turnover = pDepthMarketData->Turnover;
 	p_this_data->OpenInterest = pDepthMarketData->OpenInterest;
 	p_this_data->UpperLimitPrice = pDepthMarketData->UpperLimitPrice;
 	p_this_data->LowerLimitPrice = pDepthMarketData->LowerLimitPrice;
 	strcpy(p_this_data->UpdateTime, pDepthMarketData->UpdateTime);
-	p_this_data->UpdateMillisec = pDepthMarketData->UpdateMillisec;
+	//p_this_data->UpdateMillisec = pDepthMarketData->UpdateMillisec;
 	p_this_data->BidPrice1 = pDepthMarketData->BidPrice1;
 	p_this_data->BidVolume1 = pDepthMarketData->BidVolume1;
 	p_this_data->AskPrice1 = pDepthMarketData->AskPrice1;
@@ -231,7 +231,7 @@ void* MdHandler :: calcu_k_func(void *arg){
     //本次收到的tick行情时间(分钟)
     char revmdtime[6] = {'\0'};
 
-    int loginhour;
+    //int loginhour;
 
     time_t now ;
     struct tm *tm_now ;
@@ -249,8 +249,9 @@ void* MdHandler :: calcu_k_func(void *arg){
 		//找到合约
 		it=bars.find(this_data.InstrumentID);
 		//处理盘中启动时 第一跟bar开盘价为0的bug
-		loginhour = atoi(LOGINHOUR);
-		if ((it->second).front().OpenPrice == -1 && ((loginhour >=9 && loginhour<15) || (loginhour >=21 || loginhour<3)) ){
+		//loginhour = atoi(LOGINHOUR);
+		//if ((it->second).front().OpenPrice == -1 && ((loginhour >=9 && loginhour<15) || (loginhour >=21 || loginhour<3)) ){
+		if ((it->second).front().OpenPrice == -1 ){
 			//程序启动后本合约第一笔数据
 			(it->second).back().OpenPrice = this_data.LastPrice;
 			(it->second).back().HighPrice = this_data.LastPrice;
@@ -608,7 +609,7 @@ void* MdHandler :: write_k2mongo(void *arg){
 
 
 		// 早上8点到9点之间的k线过滤
-		if (strcmp(thismdtime,"09:00")<0 && strcmp(thismdtime,"08:00")>0)
+		if (strcmp(thismdtime,"09:00")<0 && strcmp(thismdtime,"02:30")>0)
 			continue;
 		// 晚上20点到21点之间的k线过滤
 		if (strcmp(thismdtime,"21:00")<0 && strcmp(thismdtime,"20:00")>0)
