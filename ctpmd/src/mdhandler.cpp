@@ -353,7 +353,7 @@ void* MdHandler :: calcu_k_func(void *arg){
 			//更新收盘价时间 HH:MM:SS
 			strcpy(it->second.back().CloseTime, this_data.UpdateTime);
 
-		}else /*if(strcmp(nowktime, revmdtime) > 0)*/{
+		}/*else if(strcmp(nowktime, revmdtime) > 0){
 
 			//收到的行情时间小于当前时间，表明本笔行情延迟了,并且假设延迟不超过一分钟，即延迟收到的行情是上一分钟的行情。
 			cout << this_data.UpdateTime << "  " << this_data.InstrumentID << " 行情延迟" << endl;
@@ -383,7 +383,7 @@ void* MdHandler :: calcu_k_func(void *arg){
 
 			sem_post(&(thisp->Md_Queue_K_LAST));
 		}
-
+       */
 	}
 }
 
