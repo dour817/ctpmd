@@ -49,6 +49,9 @@ public:
 	//写k线到mongo线程
 	static void *write_k2mongo(void *arg);
 
+	//更新上一分钟k线update到mongodb的线程
+	static void *update_k2mongo(void *arg);
+
 
 private:
 	//请求接口指针
@@ -63,11 +66,17 @@ private:
 	//写k线到mongo所需要的信号量
 	sem_t Md_Queue_K;
 
+	//update上一根k线到mongo所需要的信号量
+	sem_t Md_Queue_K_LAST;
+
     //计算k线所需行情队列
 	boost::lockfree::queue< market_data_for_k*, boost::lockfree::capacity<12800> >  market_tick_queue;
 
 	// 行情bar队列，队列bar依次写入mongo
 	boost::lockfree::queue< bar, boost::lockfree::capacity<12800>  > MARKET_K_QUEUE;
+
+	// 上一分钟需要修正的bar队列，
+	boost::lockfree::queue< bar, boost::lockfree::capacity<12800>  > MARKET_K_QUEUE_LAST;
 
 	string ActionDay;
 

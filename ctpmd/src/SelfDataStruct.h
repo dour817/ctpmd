@@ -149,6 +149,12 @@ typedef struct bar{
 	//时间戳 HH:MM:SS，精确到秒
 	char UpdateTime[TIME_LENGTH];
 
+	//开盘价发生时间 HH:MM:SS
+	char OpenTime[TIME_LENGTH];
+
+	//收盘价发生时间HH:MM:SS
+	char CloseTime[TIME_LENGTH];
+
 	//开盘价
 	double OpenPrice;
 

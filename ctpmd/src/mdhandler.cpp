@@ -86,12 +86,18 @@ void MdHandler :: OnRspUserLogin(CThostFtdcRspUserLoginField *pRspUserLogin,CTho
 	//初始化信号量 通知写k线数据线程，k线行情队列有可用数据。
 	sem_init(&Md_Queue_K, 0, 0);
 
+	//初始化信号量 通知写k线数据线程，k线行情队列有可用数据。
+	sem_init(&Md_Queue_K_LAST, 0, 0);
+
 
 	pthread_t threadMdID;
 	pthread_create(&threadMdID, NULL, calcu_k_func, (void *)this);
 
 	pthread_t threadMdID1;
 	pthread_create(&threadMdID1, NULL, write_k2mongo, (void *)this);
+
+	pthread_t threadMdID2;
+	pthread_create(&threadMdID2, NULL, update_k2mongo, (void *)this);
 
 }
 
@@ -127,6 +133,7 @@ void MdHandler :: OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMar
 		sem_post(&Md_Queue_Write_Daily);
 	}
 
+
 	//粗略过滤。
     //白天8点到19点之间登录，却收到 16点以后，或者 凌晨1点和2点的行情
 	if (atoi(LOGINHOUR)>=8 && atoi(LOGINHOUR) < 20 && (ihour> 15||ihour<=2)){
@@ -141,6 +148,7 @@ void MdHandler :: OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *pDepthMar
 		//cout << pDepthMarketData->UpdateTime <<  " 非交易时间行情，过滤" << endl;
 		return;
 	}
+
 
 
     //cout <<  pDepthMarketData->UpdateTime << " " << pDepthMarketData->InstrumentID << endl;
@@ -253,17 +261,22 @@ void* MdHandler :: calcu_k_func(void *arg){
 		//if ((it->second).front().OpenPrice == -1 && ((loginhour >=9 && loginhour<15) || (loginhour >=21 || loginhour<3)) ){
 		if ((it->second).front().OpenPrice == -1 ){
 			//程序启动后本合约第一笔数据
+
 			(it->second).back().OpenPrice = this_data.LastPrice;
 			(it->second).back().HighPrice = this_data.LastPrice;
 			(it->second).back().LowPrice = this_data.LastPrice;
 			(it->second).back().ClosePrice = this_data.LastPrice;
 			(it->second).back().TotalVolume = this_data.Volume;
+			strcpy((it->second).back().OpenTime, this_data.UpdateTime);
+			strcpy((it->second).back().CloseTime, this_data.UpdateTime);
 
 			(it->second).front().OpenPrice = this_data.LastPrice;
 			(it->second).front().HighPrice = this_data.LastPrice;
 			(it->second).front().LowPrice = this_data.LastPrice;
 			(it->second).front().ClosePrice = this_data.LastPrice;
 			(it->second).front().TotalVolume = this_data.Volume;
+			strcpy((it->second).back().OpenTime, this_data.UpdateTime);
+			strcpy((it->second).back().CloseTime, this_data.UpdateTime);
 		}
 
 
@@ -289,6 +302,8 @@ void* MdHandler :: calcu_k_func(void *arg){
 				(ite->second).front() = (ite->second).back();
 
 				//重置当前bar
+				strcpy(ite->second.back().OpenTime, ite->second.back().CloseTime);
+
 				ite->second.back().OpenPrice = ite->second.back().ClosePrice;
 				ite->second.back().HighPrice = ite->second.back().ClosePrice;
 				ite->second.back().LowPrice = ite->second.back().ClosePrice;
@@ -297,12 +312,7 @@ void* MdHandler :: calcu_k_func(void *arg){
 
 				//最新(当前)一根bar的时间 自然日+分钟
 				//bar时间 HH:SS
-				//strncpy(((ite->second).back().UpdateTime)+11, nowktime, 5);
-				//bar时间 yyyy-mm-dd
-				//strncpy((ite->second).back().UpdateTime, lastktime, 10);
-				//strncpy((ite->second).back().UpdateTime, this_data.ActionDay, 4);
-				//strncpy(((ite->second).back().UpdateTime)+5, (this_data.ActionDay+4), 2);
-				//strncpy(((ite->second).back().UpdateTime)+8, (this_data.ActionDay+6), 2);
+				//bar日期 yyyy-mm-dd
 
 				// 郑州的夜盘 业务日期和交易日期相同 ，而其他三个交易所的业务日期是自然日，所以bar真实时间不能用ActionDay业务日期
 				// 需要从
@@ -311,9 +321,6 @@ void* MdHandler :: calcu_k_func(void *arg){
 				sprintf(((ite->second).back().UpdateTime),"%04d-%02d-%02d %s", tm_now->tm_year+1900, tm_now->tm_mon+1, tm_now->tm_mday,\
 						nowktime);\
 
-				//((ite->second).back().UpdateTime)[4] = '-';
-				//((ite->second).back().UpdateTime)[7] = '-';
-				//((ite->second).back().UpdateTime)[10] = ' ';
 
 				sem_post(&(thisp->Md_Queue_K));
 			}
@@ -323,6 +330,14 @@ void* MdHandler :: calcu_k_func(void *arg){
 
 		    //更新收盘价
 			it->second.back().ClosePrice = this_data.LastPrice;
+
+			//判断开盘价是否有误，开盘价的时间可能是上一分钟末的行情
+			if (strncmp(this_data.UpdateTime, it->second.back().OpenTime, 5) !=0){
+				it->second.back().OpenPrice = this_data.LastPrice;
+				strcpy(it->second.back().OpenTime, this_data.UpdateTime);
+				//it->second.back().TotalVolume = this_data.Volume;
+				cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>更新开盘价<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << endl;
+			}
 
 			//更新最高价
 			if (this_data.LastPrice > (it->second).back().HighPrice)
@@ -335,157 +350,98 @@ void* MdHandler :: calcu_k_func(void *arg){
 			//更新总成交量
 			(it->second).back().TotalVolume = this_data.Volume;
 
+			//更新收盘价时间 HH:MM:SS
+			strcpy(it->second.back().CloseTime, this_data.UpdateTime);
 
-		}/*else if(strcmp(nowktime, revmdtime) > 0){
+		}else /*if(strcmp(nowktime, revmdtime) > 0)*/{
 
 			//收到的行情时间小于当前时间，表明本笔行情延迟了,并且假设延迟不超过一分钟，即延迟收到的行情是上一分钟的行情。
 			cout << this_data.UpdateTime << "  " << this_data.InstrumentID << " 行情延迟" << endl;
-			//分钟内
-			//找到合约
-			it=bars.find(this_data.InstrumentID);
 
-			//更新收盘价
+			//修正收盘价
 			it->second.front().ClosePrice = this_data.LastPrice;
 
-			//更新最高价
+			//修正最高价
 			if (this_data.LastPrice > (it->second).front().HighPrice)
 				(it->second).front().HighPrice = this_data.LastPrice;
 
-			//更新最低价
+			//修正最低价
 			if (this_data.LastPrice < (it->second).front().LowPrice)
 				(it->second).front().LowPrice = this_data.LastPrice;
 
-			//更新总成交量
-			(it->second).front().Volume = (it->second).front().Volume + ( this_data.Volume-(it->second).front().TotalVolume);
+			//更新成交量
+			(it->second).front().Volume = (it->second).front().Volume + ( this_data.Volume - (it->second).front().TotalVolume);
 
+			//更新总成交量
+			(it->second).front().TotalVolume = this_data.Volume;
 			//时间 HH:SS
 			//strncpy((it->second).front().UpdateTime+11, this_data.UpdateTime, 5);
 
+			//修正(it->second).front()上一分钟的bar数据，推入修正bar线程
 			//推入bar队列，将会覆盖update上一分钟的bar
-			(thisp->MARKET_K_QUEUE).push((it->second).front());
+			(thisp->MARKET_K_QUEUE_LAST).push((it->second).front());
 
-			sem_post(&(thisp->Md_Queue_K));
+			sem_post(&(thisp->Md_Queue_K_LAST));
 		}
-*/
-
-/*
-		//剔除出开盘前数据
-		hour = atoi(strncpy(temp2char, this_data.UpdateTime, 2));
-		minute = atoi(strncpy(temp2char, this_data.UpdateTime+3, 2));
-        if ( (hour >=15 && hour <=21) || (hour<9 && hour>3) ){
-        	//cout << "分钟过滤" << endl;
-        	continue;
-        }
-
-		//找到合约
-	    it=bars.find(this_data.InstrumentID);
-
-		//判断本根bar是否走完。
-		if ( (it->second).UpdateTime[14] == this_data.UpdateTime[3] && (it->second).UpdateTime[15] == this_data.UpdateTime[4] ){
-			//bar中行情
-
-			//更新收盘价
-			(it->second).ClosePrice = this_data.LastPrice;
-
-			//更新最高价
-			if (this_data.LastPrice > (it->second).HighPrice)
-				(it->second).HighPrice = this_data.LastPrice;
-
-			//更新最低价
-			if (this_data.LastPrice < (it->second).LowPrice)
-				(it->second).LowPrice = this_data.LastPrice;
-
-			//更新总成交量
-			(it->second).TotalVolume = this_data.Volume;
-
-			//时间 HH:SS
-			strncpy((it->second).UpdateTime+11, this_data.UpdateTime, 5);
-		}else{
-			//本条行情是最新一个根bar的开盘价，上一个bar已经结束。
-
-			//计算上一根bar的成交量
-			(it->second).Volume = (it->second).TotalVolume - (it->second).LastTotalVolume;
-
-			// 临时打印
-			//cout << bars[i].UpdateTime << "  " << bars[i].InstrumentID << "  "<< bars[i].OpenPrice <<"  "<< bars[i].HighPrice <<"  "<< bars[i].LowPrice\
-			//		<<"  "<< bars[i].ClosePrice <<"  "<< bars[i].Volume << endl;
-
-			//上一根bar bars[i] 推入队列，准备写入mongo
-			(thisp->MARKET_K_QUEUE).push((it->second));
-
-			sem_post(&(thisp->Md_Queue_K));
-
-			//初始化新的一根bar
-			(it->second).OpenPrice = this_data.LastPrice;
-			(it->second).HighPrice = this_data.LastPrice;
-			(it->second).LowPrice = this_data.LastPrice;
-			(it->second).ClosePrice = this_data.LastPrice;
-
-			(it->second).LastTotalVolume = (it->second).TotalVolume;
-			(it->second).TotalVolume = this_data.Volume;
-			strncpy((it->second).UpdateTime+11, this_data.UpdateTime, 5);
-		}
-*/
-
-        /*
-		//开始计算，遍历所有合约
-        for (vector<bar>::size_type i=0; i<bars.size(); i++){
-        	//找到合约
-        	if ( !strcmp(this_data.InstrumentID, bars[i].InstrumentID) ){
-        		//判断本根bar是否走完。
-                if ( bars[i].UpdateTime[14] == this_data.UpdateTime[3] && bars[i].UpdateTime[15] == this_data.UpdateTime[4] ){
-                    //bar中行情
-
-                	//更新收盘价
-                	bars[i].ClosePrice = this_data.LastPrice;
-
-                	//更新最高价
-                	if (this_data.LastPrice > bars[i].HighPrice)
-                		bars[i].HighPrice = this_data.LastPrice;
-
-                	//更新最低价
-                	if (this_data.LastPrice < bars[i].LowPrice)
-                		bars[i].LowPrice = this_data.LastPrice;
-
-                	//更新总成交量
-                	bars[i].TotalVolume = this_data.Volume;
-
-                	//时间 HH:SS
-                	strncpy(bars[i].UpdateTime+11, this_data.UpdateTime, 5);
-                }else{
-                	//本条行情是最新一个根bar的开盘价，上一个bar已经结束。
-
-                	//计算上一根bar的成交量
-                	bars[i].Volume = bars[i].TotalVolume - bars[i].LastTotalVolume;
-
-                	// 临时打印
-                    //cout << bars[i].UpdateTime << "  " << bars[i].InstrumentID << "  "<< bars[i].OpenPrice <<"  "<< bars[i].HighPrice <<"  "<< bars[i].LowPrice\
-                    //		<<"  "<< bars[i].ClosePrice <<"  "<< bars[i].Volume << endl;
-
-                    //上一根bar bars[i] 推入队列，准备写入mongo
-                	(thisp->MARKET_K_QUEUE).push(bars[i]);
-
-                    sem_post(&(thisp->Md_Queue_K));
-
-                    //初始化新的一根bar
-                	bars[i].OpenPrice = this_data.LastPrice;
-                	bars[i].HighPrice = this_data.LastPrice;
-                	bars[i].LowPrice = this_data.LastPrice;
-                	bars[i].ClosePrice = this_data.LastPrice;
-
-                	bars[i].LastTotalVolume = bars[i].TotalVolume;
-                	bars[i].TotalVolume = this_data.Volume;
-                	strncpy(bars[i].UpdateTime+11, this_data.UpdateTime, 5);
-                }
-                break;
-        	}
-        }
-        */
-        //cout << "计算k线  " << this_data.UpdateTime << "   " << this_data.InstrumentID << "  "<< this_data.LastPrice << endl;
 
 	}
 }
 
+// 更新上一分钟bar update到mongodb 的线程
+void * MdHandler :: update_k2mongo(void *arg){
+	MdHandler *thisp = (MdHandler *)arg;
+	string uristring = "mongodb://";
+	if (!MONGODB_SETTING.username.empty())
+		uristring = uristring + MONGODB_SETTING.username + ":" + MONGODB_SETTING.password + "@";
+	uristring = uristring + MONGODB_SETTING.host + ":" + MONGODB_SETTING.port;
+
+	mongocxx::uri uri(uristring.c_str());
+	mongocxx::client client(uri);
+	//mongocxx::client client{mongocxx::uri{}};
+	mongocxx::database db = client[MONGODB_SETTING.db.c_str()];
+	mongocxx::collection coll;
+
+	tm tm_time;
+	time_t timep;
+
+	while (true){
+		bar this_data;
+
+		sem_wait(&(thisp->Md_Queue_K_LAST));
+		(thisp->MARKET_K_QUEUE_LAST).pop(this_data);
+
+		strptime(this_data.UpdateTime, "%Y-%m-%d %H:%M", &tm_time);
+	    timep = mktime(&tm_time);
+
+		coll = db[this_data.InstrumentID + string("_1min")];
+
+		auto doc = bsoncxx::builder::basic::document{};
+		doc.append(bsoncxx::builder::basic::kvp("timestamp", timep));
+		doc.append(bsoncxx::builder::basic::kvp("time", this_data.UpdateTime));
+		doc.append(bsoncxx::builder::basic::kvp("open", this_data.OpenPrice));
+		doc.append(bsoncxx::builder::basic::kvp("high", this_data.HighPrice));
+		doc.append(bsoncxx::builder::basic::kvp("low", this_data.LowPrice));
+		doc.append(bsoncxx::builder::basic::kvp("close", this_data.ClosePrice));
+		doc.append(bsoncxx::builder::basic::kvp("vol", this_data.Volume));
+		doc.append(bsoncxx::builder::basic::kvp("update", 1));
+
+		auto olddoc = bsoncxx::builder::basic::document{};
+		olddoc.append(bsoncxx::builder::basic::kvp("time", this_data.UpdateTime));
+
+		auto tempdoc = bsoncxx::builder::basic::document{};
+		tempdoc.append(bsoncxx::builder::basic::kvp("$set", doc.view()));
+
+		auto para = mongocxx::v_noabi::options::update{};
+		para.upsert(false);
+
+		coll.update_one(olddoc.view(), tempdoc.view(), para);
+
+		cout << "********************** 更新  " <<this_data.UpdateTime << " " << this_data.InstrumentID \
+				<< "***************************" << endl;
+
+	}
+
+}
 
 // 写bar到mongo线程
 void* MdHandler :: write_k2mongo(void *arg){
@@ -516,7 +472,7 @@ void* MdHandler :: write_k2mongo(void *arg){
    	// 记录每一个合约最近本次写入的k线的时间
    	map<string,string> maplastktime;
     for (vector<string>::size_type i=0; i < thisp->subcode.size(); i++){
-    	maplastktime.insert( pair< string,string >((thisp->subcode)[i], "99:99") );
+    	maplastktime.insert( pair< string,string >((thisp->subcode)[i], "22:59") );
     }
 
    	//等待品种交易状态推送完毕。
