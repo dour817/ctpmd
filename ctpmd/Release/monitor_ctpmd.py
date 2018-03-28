@@ -75,17 +75,17 @@ def istradetime():
     minute = datetime.datetime.now().minute
     second = datetime.datetime.now().second
     if weekday in (2, 3, 4, 5):
-        if (hour == 8 and minute >= 50) or (9 <= hour < 15) or (hour == 15 and minute <= 15) \
-                or (hour == 20 and minute >= 50) or (hour >= 21 or hour <= 1) or (hour == 2 and minute <= 45):
+        if (hour == 8 and minute >= 40) or (9 <= hour < 15) or (hour == 15 and minute <= 30) \
+                or (hour == 20 and minute >= 40) or (hour >= 21 or hour <= 1) or (hour == 2 and minute <= 45):
             # 星期2至星期5 交易时间
             return True
     elif weekday == 1:
-        if (hour == 8 and minute >= 50) or (9 <= hour < 15) or (hour == 15 and minute <= 15) \
-                or (hour == 20 and minute >= 50) or hour >=21:
+        if (hour == 8 and minute >= 40) or (9 <= hour < 15) or (hour == 15 and minute <= 30) \
+                or (hour == 20 and minute >= 40) or hour >=21:
             # 周1交易时间
             return True
     elif weekday == 6:
-        if (hour == 1) or ((hour == 2 and minute >= 40)):
+        if (hour <= 1) or ((hour == 2 and minute <= 45)):
             # 周6交易时间
             return True
     return False
