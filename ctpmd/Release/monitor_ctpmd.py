@@ -3,6 +3,7 @@ import time
 import os
 import sys
 import psutil
+import logging
 import traceback
 import threading
 '''
@@ -13,7 +14,12 @@ import threading
 2,运行cmd : python3 本监控py脚本  ctpmd可执行文件所在路径 例如如下
           python3 /home/tcz/monitor_ctpmd.py /home/tcz/learngit/ctpmd/Release/
   另外需要安装psutil包。
+
 '''
+import logging
+logging.basicConfig(level = logging.WARNING,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s', \
+                    filename = './exception.txt')
+logger = logging.getLogger('monitor_ctpmd')
 #
 def main():
     '''
@@ -35,6 +41,10 @@ def main():
                 t = threading.Thread(target=threadrun, args = (path, procname))
                 t.start()
                 print('*********  ', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), procname,' start   *********')
+                try:
+                    logger.warning('ctpmd 启动')
+                except:
+                    traceback.print_exc(file=open('./exception.txt', 'w+'))
             else:
                 print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '交易时间，程序已经启动')
         else:
