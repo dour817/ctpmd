@@ -3,9 +3,9 @@ import time
 import os
 import sys
 import psutil
-import logging
 import traceback
 import threading
+import logging
 '''
 行情接收程序部署说明：
 可执行文件 ctpmd 为行情接收程序，本py文件是定时启动和关闭，并且监控ctpmd进程运行的脚本程序。
@@ -14,13 +14,13 @@ import threading
 2,运行cmd : python3 本监控py脚本  ctpmd可执行文件所在路径 例如如下
           python3 /home/tcz/monitor_ctpmd.py /home/tcz/learngit/ctpmd/Release/
   另外需要安装psutil包。
-
 '''
+#
 import logging
 logging.basicConfig(level = logging.WARNING,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s', \
                     filename = './exception.txt')
 logger = logging.getLogger('monitor_ctpmd')
-#
+
 def main():
     '''
     根据交易时间，启动和杀掉行情接收程序
@@ -45,16 +45,23 @@ def main():
                     logger.warning('ctpmd 启动')
                 except:
                     traceback.print_exc(file=open('./exception.txt', 'w+'))
-            else:
+            elif isrun >0:
                 print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '交易时间，程序已经启动')
+            else:
+                print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '交易时间，程序运行情况未知，稍等......')
         else:
-            if isrun:
+            if isrun > 0 :
                 #杀掉进程
                 print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '非交易时间，程序已经启动，准备关掉......')
-                p = psutil.Process(isrun)
-                p.kill()
-            else:
+                try:
+                    p = psutil.Process(isrun)
+                    p.kill()
+                except:
+                    traceback.print_exc(file=open('./exception.txt', 'w+'))
+            elif not isrun:
                 print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '非交易时间，程序未启动')
+            else:
+                print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '非交易时间，程序运行情况未知，稍等......')
         if isOnTime:
             time.sleep(2)
         else:
@@ -105,9 +112,8 @@ def isprocrun(procname):
                 return prociter.pid
     except:
         traceback.print_exc(file=open('./exception.txt','w+'))
+        return -1
     return 0
-
-
 
 if __name__ == '__main__':
     #isprocrun('ctpmd')
