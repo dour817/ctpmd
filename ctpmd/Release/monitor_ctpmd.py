@@ -5,6 +5,7 @@ import sys
 import psutil
 import traceback
 import threading
+import requests
 import logging
 '''
 行情接收程序部署说明：
@@ -16,28 +17,36 @@ import logging
   另外需要安装psutil包。
 '''
 #
-import logging
 logging.basicConfig(level = logging.WARNING,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s', \
                     filename = './exception.txt')
 logger = logging.getLogger('monitor_ctpmd')
-
+todayworkflag = 0
+tomorrowworkflag = 0
 def main():
     '''
     根据交易时间，启动和杀掉行情接收程序
     '''
+    global todayworkflag
+    global tomorrowworkflag
+    todayworkflag = requests.get('https://api.goseek.cn/Tools/holiday?date='+datetime.datetime.today().strftime('%Y%m%d'))\
+        .json()['data']
+    tomorrowworkflag = requests.get('https://api.goseek.cn/Tools/holiday?date=' +\
+                 (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y%m%d')).json()['data']
+
     if len(sys.argv) == 1:
         path = '/home/tcz/learngit/ctpmd/Release/'
     else:
         path = sys.argv[1]
     procname = 'ctpmd'
-    while True:
 
-        isOnTime = istradetime()
+    lasthour = datetime.datetime.now().hour
+    while True:
+        isOnTime,lasthour = istradetime(lasthour)
         isrun = isprocrun(procname)
         if isOnTime:
             if not isrun:
                 #启动进程
-                print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '交易时间，程序未启动，准备启动......')
+                print(datetime.date.now().strftime('%Y-%m-%d %H:%M:%S'), '交易时间，程序未启动，准备启动......')
                 t = threading.Thread(target=threadrun, args = (path, procname))
                 t.start()
                 print('*********  ', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), procname,' start   *********')
@@ -72,30 +81,45 @@ def threadrun(path, procname):
     f = os.system("./" + procname)
 
 
-def istradetime():
+def istradetime(lasthour):
     '''
     判断是否交易时间
     :return: True：交易时间； False:非交易时间
     '''
+    global todayworkflag
+    global tomorrowworkflag
+
     weekday = datetime.datetime.now().date().weekday() + 1
     hour = datetime.datetime.now().hour
     minute = datetime.datetime.now().minute
-    second = datetime.datetime.now().second
+    if hour < lasthour:
+        todayworkflag =requests.get('https://api.goseek.cn/Tools/holiday?date=' + datetime.datetime.today().strftime('%Y%m%d')).json()['data']
+        tomorrowworkflag = requests.get('https://api.goseek.cn/Tools/holiday?date=' + \
+                                    (datetime.date.today() + datetime.timedelta(days=1)).strftime('%Y%m%d')).json()['data']
+    if todayworkflag == 2:
+        # 节假日
+        return False, hour
+
+    if tomorrowworkflag == 2:
+        # 明天是节假日，今晚无夜盘
+        if hour >15 or (hour==15 and minute>30):
+            return False, hour
+
     if weekday in (2, 3, 4, 5):
         if (hour == 8 and minute >= 40) or (9 <= hour < 15) or (hour == 15 and minute <= 30) \
                 or (hour == 20 and minute >= 40) or (hour >= 21 or hour <= 1) or (hour == 2 and minute <= 45):
             # 星期2至星期5 交易时间
-            return True
+            return True,hour
     elif weekday == 1:
         if (hour == 8 and minute >= 40) or (9 <= hour < 15) or (hour == 15 and minute <= 30) \
                 or (hour == 20 and minute >= 40) or hour >=21:
             # 周1交易时间
-            return True
+            return True,hour
     elif weekday == 6:
         if (hour <= 1) or ((hour == 2 and minute <= 45)):
             # 周6交易时间
-            return True
-    return False
+            return True,hour
+    return False,hour
 
 
 def isprocrun(procname):
@@ -118,3 +142,4 @@ def isprocrun(procname):
 if __name__ == '__main__':
     #isprocrun('ctpmd')
     main()
+
